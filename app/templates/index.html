@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Transcription</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        form {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            width: 300px;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        input[type="file"],
+        input[type="text"],
+        select,
+        button {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        button {
+            background-color: #5cb85c;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:disabled {
+            background-color: #ccc;
+        }
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 600px;
+            margin-bottom: 20px;
+            overflow: auto;
+        }
+        .loading {
+            display: none;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <h1>Аудіо Транскрипція</h1>
+    <form id="upload-form" enctype="multipart/form-data">
+        <label for="file">Оберіть MP3 Файл:</label>
+        <input type="file" id="file" name="file" accept=".mp3" required><br><br>
+        <label for="lang">Мови (через кому, замовчування: Ukrainian):</label>
+        <input type="text" id="lang" name="lang" value="Ukrainian"><br><br>
+        <label for="keywords">Ключові слова (через кому):</label>
+        <input type="text" id="keywords" name="keywords" value="Київ,Харків,Одеса"><br><br>
+        <label for="confidence_threshold">Поріг довіри (замовчування: 65):</label>
+        <input type="number" id="confidence_threshold" name="confidence_threshold" value="65" min="0" max="100"><br><br>
+        <label for="model">Моделька:</label>
+        <select id="model" name="model">
+            <option value="tiny">Крихітка</option>
+            <option value="base">Базова</option>
+            <option value="small">Маленька</option>
+            <option value="medium">Середня</option>
+            <option value="large" disabled>Гіганська</option>
+        </select><br><br>
+        <button type="submit">Завантажити</button>
+    </form>
+    <h2>Результат</h2>
+    <p id="loading" class="loading">Слухаю, що говорять...</p>
+    <div id="result"></div>
+    <script>
+        document.getElementById('upload-form').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const formData = new FormData();
+            const fileField = document.querySelector('input[type="file"]');
+            const langField = document.querySelector('input[name="lang"]');
+            const keywordsField = document.querySelector('input[name="keywords"]');
+            const confidenceThresholdField = document.querySelector('input[name="confidence_threshold"]');
+            const modelField = document.querySelector('select[name="model"]');
+            const button = event.target.querySelector('button');
+            const loading = document.getElementById('loading');
+
+            formData.append('file', fileField.files[0]);
+            formData.append('lang', langField.value);
+            formData.append('keywords', keywordsField.value);
+            formData.append('confidence_threshold', confidenceThresholdField.value);
+            formData.append('model', modelField.value);
+
+            button.disabled = true;
+            loading.style.display = 'block';
+            document.getElementById('result').textContent = '';
+
+            try {
+                const startTime = performance.now();
+                const response = await fetch('/transcribe', {
+                    method: 'POST',
+                    body: formData
+                });
+                const endTime = performance.now();
+                const result = await response.json();
+                if (response.ok) {
+                    const processingTime = ((endTime - startTime) / 1000).toFixed(2);
+                    let resultHtml = `Processing Time: ${processingTime} seconds<br>`;
+                    for (const [lang, transcription] of Object.entries(result.transcriptions)) {
+                        resultHtml += `<strong>${lang}:</strong><pre>${transcription}</pre><br>`;
+                        if (result.keyword_spots[lang]) {
+                            for (const [keyword, positions] of Object.entries(result.keyword_spots[lang])) {
+                                if (positions.length === 0) {
+                                    continue;
+                                }
+
+                                resultHtml += `<strong>Ключове слово "${keyword}":</strong> Знайдено<br>`;
+                            }
+                        }
+                    }
+                    document.getElementById('result').innerHTML = resultHtml;
+                } else {
+                    document.getElementById('result').textContent = `Error: ${result.error}`;
+                }
+            } catch (error) {
+                document.getElementById('result').textContent = `Error: ${error.message}`;
+            } finally {
+                button.disabled = false;
+                loading.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

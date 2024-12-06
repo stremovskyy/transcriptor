@@ -1,0 +1,8 @@
+flask
+flask-limiter
+werkzeug
+python-dotenv
+torch
+openai-whisper
+rapidfuzz
+gunicorn
