@@ -6,3 +6,7 @@ torch
 openai-whisper
 rapidfuzz
 gunicorn
+librosa
+soundfile
+numpy
+noisereduce
