@@ -16,58 +16,69 @@ class TranscriptionService:
             confidence_threshold: int = 80
     ) -> Dict[str, Any]:
         try:
+            # Load audio
+            logger.info(f"Loading audio file: {file_path}")
             audio = whisper.load_audio(file_path)
+            logger.info(f"Audio length: {len(audio) / 16000:.2f} seconds")
 
-            SAMPLE_RATE = 16000
-            CHUNK_SIZE = 26 * SAMPLE_RATE  # ~30 seconds
+            # Get model name for logging
+            model_name = getattr(model, 'name', str(type(model)))
+            logger.info(f"Using model: {model_name}")
 
-            chunks = [audio[i:i + CHUNK_SIZE] for i in range(0, len(audio), CHUNK_SIZE)]
+            # This avoids potential dimension mismatches
+            logger.info("Starting transcription with Whisper")
+            result = model.transcribe(
+                audio,
+                language=languages[0] if languages else None,
+                temperature=0.7,
+                beam_size=3
+            )
 
-            transcriptions = {language: [] for language in languages}
-            keyword_spots = {lang: {keyword: [] for keyword in keywords} for lang in languages}
+            transcriptions = {languages[0]: result["text"]}
 
-            for chunk_index, chunk in enumerate(chunks):
-                chunk = whisper.pad_or_trim(chunk)
-                mel = whisper.log_mel_spectrogram(chunk).to(model.device)
-
-                for language in languages:
-                    options = whisper.DecodingOptions(
+            # For multiple languages, process each additionally
+            if len(languages) > 1:
+                for language in languages[1:]:
+                    lang_result = model.transcribe(
+                        audio,
                         language=language,
                         temperature=0.7,
-                        beam_size=3,
-                        patience=0.8
+                        beam_size=3
                     )
+                    transcriptions[language] = lang_result["text"]
 
-                    result = whisper.decode(model, mel, options)
-                    transcriptions[language].append(result.text)
+            # Process keywords if provided
+            keyword_spots = {lang: {keyword: [] for keyword in keywords} for lang in languages}
 
-                    words = result.text.split()
-                    chunk_start_time = chunk_index * 30
+            if keywords:
+                logger.info(f"Processing keywords: {keywords}")
+                for language in languages:
+                    text = transcriptions[language]
+                    words = text.split()
 
                     for keyword in keywords:
                         matches = process.extract(
                             keyword,
                             words,
                             scorer=fuzz.ratio,
-                            limit=3
+                            limit=10
                         )
 
                         for word, score, index in matches:
                             if score >= confidence_threshold:
+                                approx_time = (index / len(words)) * (len(audio) / 16000)
+
                                 keyword_spots[language][keyword].append({
                                     'word': word,
                                     'confidence': score,
-                                    'time_mark': chunk_start_time + (index * 0.5),
+                                    'time_mark': round(approx_time, 2),
                                     'context': ' '.join(
-                                        words[max(0, index - 2):index + 3]
+                                        words[max(0, index - 2):min(len(words), index + 3)]
                                     )
                                 })
 
             return {
-                "transcriptions": {
-                    lang: ' '.join(transcriptions[lang]).strip()
-                    for lang in transcriptions
-                },
+                "transcriptions": transcriptions,
                 "keyword_spots": keyword_spots
             }
 
