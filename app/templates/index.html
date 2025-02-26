@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Audio Transcription</title>
+    <title>Аудіо Транскрипція</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -32,6 +32,7 @@
         }
         input[type="file"],
         input[type="text"],
+        input[type="url"],
         select,
         button {
             width: 100%;
@@ -66,11 +67,41 @@
             display: none;
             color: #888;
         }
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            width: 300px;
+        }
+        .tab {
+            padding: 10px;
+            background-color: #ddd;
+            cursor: pointer;
+            border-radius: 4px 4px 0 0;
+            flex: 1;
+            text-align: center;
+        }
+        .tab.active {
+            background-color: white;
+            border-bottom: 2px solid #5cb85c;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
     </style>
 </head>
 <body>
     <h1>Аудіо Транскрипція</h1>
-    <form id="upload-form" enctype="multipart/form-data">
+
+    <div class="tabs">
+        <div class="tab active" data-tab="file-upload">Завантажити файл</div>
+        <div class="tab" data-tab="url-upload">URL посилання</div>
+    </div>
+
+    <!-- File Upload Form -->
+    <form id="upload-form" class="tab-content active" enctype="multipart/form-data">
         <label for="file">Оберіть MP3 Файл:</label>
         <input type="file" id="file" name="file" accept=".mp3" required><br><br>
         <label for="lang">Мови (через кому, замовчування: Ukrainian):</label>
@@ -93,10 +124,50 @@
         </select><br><br>
         <button type="submit">Завантажити</button>
     </form>
+
+    <!-- URL Form -->
+    <form id="url-form" class="tab-content" enctype="application/json">
+        <label for="file_url">URL MP3 файлу:</label>
+        <input type="url" id="file_url" name="file_url" required placeholder="https://example.com/audio.mp3"><br><br>
+        <label for="url_lang">Мови (через кому, замовчування: Ukrainian):</label>
+        <input type="text" id="url_lang" name="url_lang" value="Ukrainian"><br><br>
+        <label for="url_keywords">Ключові слова (через кому):</label>
+        <input type="text" id="url_keywords" name="url_keywords" value="Київ,Харків,Одеса"><br><br>
+        <label for="url_confidence_threshold">Поріг довіри (замовчування: 65):</label>
+        <input type="number" id="url_confidence_threshold" name="url_confidence_threshold" value="65" min="0" max="100"><br><br>
+        <label for="url_model">Моделька:</label>
+        <select id="url_model" name="url_model">
+            <option value="tiny">Крихітка</option>
+            <option value="base">Базова</option>
+            <option value="small">Маленька</option>
+            <option value="medium">Середня</option>
+            <option value="large">Велика</option>
+            <option value="large-v2">Велика v2</option>
+            <option value="large-v3">Велика v3</option>
+            <option value="large-v3-turbo">Велика v3 Turbo</option>
+            <option value="turbo">Турбо</option>
+        </select><br><br>
+        <button type="submit">Транскрибувати</button>
+    </form>
+
     <h2>Результат</h2>
     <p id="loading" class="loading">Слухаю, що говорять...</p>
     <div id="result"></div>
+
     <script>
+        // Tab functionality
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+                this.classList.add('active');
+                const tabId = this.getAttribute('data-tab');
+                document.getElementById(tabId === 'file-upload' ? 'upload-form' : 'url-form').classList.add('active');
+            });
+        });
+
+        // File upload form handler
         document.getElementById('upload-form').addEventListener('submit', async function(event) {
             event.preventDefault();
             const formData = new FormData();
@@ -127,21 +198,7 @@
                 const endTime = performance.now();
                 const result = await response.json();
                 if (response.ok) {
-                    const processingTime = ((endTime - startTime) / 1000).toFixed(2);
-                    let resultHtml = `Processing Time: ${processingTime} seconds<br>`;
-                    for (const [lang, transcription] of Object.entries(result.transcriptions)) {
-                        resultHtml += `<strong>${lang}:</strong><pre>${transcription}</pre><br>`;
-                        if (result.keyword_spots[lang]) {
-                            for (const [keyword, positions] of Object.entries(result.keyword_spots[lang])) {
-                                if (positions.length === 0) {
-                                    continue;
-                                }
-
-                                resultHtml += `<strong>Ключове слово "${keyword}":</strong> Знайдено<br>`;
-                            }
-                        }
-                    }
-                    document.getElementById('result').innerHTML = resultHtml;
+                    displayResult(result, (endTime - startTime) / 1000);
                 } else {
                     document.getElementById('result').textContent = `Error: ${result.error}`;
                 }
@@ -152,6 +209,77 @@
                 loading.style.display = 'none';
             }
         });
+
+        // URL form handler
+        document.getElementById('url-form').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const urlField = document.getElementById('file_url');
+            const langField = document.getElementById('url_lang');
+            const keywordsField = document.getElementById('url_keywords');
+            const confidenceThresholdField = document.getElementById('url_confidence_threshold');
+            const modelField = document.getElementById('url_model');
+            const button = event.target.querySelector('button');
+            const loading = document.getElementById('loading');
+
+            const jsonData = {
+                file_url: urlField.value,
+                languages: langField.value.split(',').map(lang => lang.trim()),
+                keywords: keywordsField.value ? keywordsField.value.split(',').map(kw => kw.trim()) : [],
+                confidence_threshold: parseInt(confidenceThresholdField.value),
+                model: modelField.value
+            };
+
+            button.disabled = true;
+            loading.style.display = 'block';
+            document.getElementById('result').textContent = '';
+
+            try {
+                const startTime = performance.now();
+                const response = await fetch('/pull', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(jsonData)
+                });
+                const endTime = performance.now();
+                const result = await response.json();
+                if (response.ok) {
+                    displayResult(result, result.processing_time || (endTime - startTime) / 1000);
+                } else {
+                    document.getElementById('result').textContent = `Error: ${result.error}`;
+                }
+            } catch (error) {
+                document.getElementById('result').textContent = `Error: ${error.message}`;
+            } finally {
+                button.disabled = false;
+                loading.style.display = 'none';
+            }
+        });
+
+        // Function to display results (shared between both forms)
+        function displayResult(result, processingTime) {
+            let resultHtml = `Processing Time: ${processingTime.toFixed(2)} seconds<br>`;
+
+            // If URL was used, show it
+            if (result.original_url) {
+                resultHtml += `<strong>Original URL:</strong> ${result.original_url}<br><br>`;
+            }
+
+            for (const [lang, transcription] of Object.entries(result.transcriptions)) {
+                resultHtml += `<strong>${lang}:</strong><pre>${transcription}</pre><br>`;
+                if (result.keyword_spots[lang]) {
+                    for (const [keyword, positions] of Object.entries(result.keyword_spots[lang])) {
+                        if (positions.length === 0) {
+                            continue;
+                        }
+
+                        resultHtml += `<strong>Ключове слово "${keyword}":</strong> Знайдено<br>`;
+                    }
+                }
+            }
+            document.getElementById('result').innerHTML = resultHtml;
+        }
     </script>
 </body>
 </html>
