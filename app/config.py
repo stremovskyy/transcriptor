@@ -7,7 +7,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('logs/transcription_app.log'),
+        logging.FileHandler('logs/transcription_app.log', mode='a', encoding='utf-8', errors='ignore'),
         logging.StreamHandler()
     ]
 )

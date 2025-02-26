@@ -27,11 +27,6 @@ class ModelCache:
             if model_type not in self._models:
                 try:
                     if torch.cuda.is_available():
-                        torch.cuda.empty_cache()
-                        torch.cuda.synchronize()
-                        logger.info("Cleared GPU cache")
-
-                    if torch.cuda.is_available():
                         initial_memory_allocated = torch.cuda.memory_allocated()
                         initial_memory_cached = torch.cuda.memory_cached()
                         logger.info(
