@@ -1,4 +1,6 @@
 import whisper
+import numpy as np
+import torch
 from typing import List, Dict, Any
 from rapidfuzz import process, fuzz
 from logging import getLogger
@@ -19,33 +21,85 @@ class TranscriptionService:
             # Load audio
             logger.info(f"Loading audio file: {file_path}")
             audio = whisper.load_audio(file_path)
-            logger.info(f"Audio length: {len(audio) / 16000:.2f} seconds")
+            audio_duration = len(audio) / 16000  # Convert to seconds
+            logger.info(f"Audio length: {audio_duration:.2f} seconds")
 
             # Get model name for logging
             model_name = getattr(model, 'name', str(type(model)))
             logger.info(f"Using model: {model_name}")
 
-            # This avoids potential dimension mismatches
-            logger.info("Starting transcription with Whisper")
-            result = model.transcribe(
-                audio,
-                language=languages[0] if languages else None,
-                temperature=0.7,
-                beam_size=3
-            )
+            # Manually segment the audio to ensure the entire content is processed
+            # The default context size for Whisper is around 30 seconds
+            segment_length = 25 * 16000  # 25 seconds at 16kHz, with overlap
+            overlap = 5 * 16000  # 5 seconds overlap
 
-            transcriptions = {languages[0]: result["text"]}
+            # Create segments with overlap
+            segments = []
+            for start in range(0, len(audio), segment_length - overlap):
+                end = min(start + segment_length, len(audio))
+                segment = audio[start:end]
+                segments.append((start, segment))
 
-            # For multiple languages, process each additionally
-            if len(languages) > 1:
-                for language in languages[1:]:
-                    lang_result = model.transcribe(
-                        audio,
-                        language=language,
-                        temperature=0.7,
-                        beam_size=3
-                    )
-                    transcriptions[language] = lang_result["text"]
+                # If we've reached the end of the audio, break
+                if end == len(audio):
+                    break
+
+            logger.info(f"Split audio into {len(segments)} segments for processing")
+
+            # Process each segment and combine results
+            all_results = {}
+            for lang in languages:
+                all_results[lang] = []
+
+            for i, (start_sample, segment) in enumerate(segments):
+                logger.info(f"Processing segment {i + 1}/{len(segments)}")
+
+                # Process for primary language
+                result = model.transcribe(
+                    segment,
+                    language=languages[0] if languages else None,
+                    temperature=0.7,
+                    beam_size=3,
+                    fp16=False
+                )
+
+                # Calculate start time in seconds
+                start_time = start_sample / 16000
+
+                # Add segment results with timing info
+                all_results[languages[0]].append({
+                    "text": result["text"],
+                    "start": start_time,
+                    "end": start_time + (len(segment) / 16000)
+                })
+
+                # Process additional languages if provided
+                if len(languages) > 1:
+                    for language in languages[1:]:
+                        lang_result = model.transcribe(
+                            segment,
+                            language=language,
+                            temperature=0.7,
+                            beam_size=3,
+                            fp16=False
+                        )
+
+                        all_results[language].append({
+                            "text": lang_result["text"],
+                            "start": start_time,
+                            "end": start_time + (len(segment) / 16000)
+                        })
+
+            # Combine segments into final transcriptions
+            transcriptions = {}
+            for lang in languages:
+                # Join all segments with appropriate spacing
+                full_text = " ".join([segment["text"].strip() for segment in all_results[lang]])
+                # Clean up any double spaces
+                full_text = " ".join(full_text.split())
+                transcriptions[lang] = full_text
+
+            logger.info("Segments combined into full transcriptions")
 
             # Process keywords if provided
             keyword_spots = {lang: {keyword: [] for keyword in keywords} for lang in languages}
@@ -53,29 +107,37 @@ class TranscriptionService:
             if keywords:
                 logger.info(f"Processing keywords: {keywords}")
                 for language in languages:
-                    text = transcriptions[language]
-                    words = text.split()
+                    # Process keywords in each segment for more accurate time marks
+                    for segment_data in all_results[language]:
+                        segment_text = segment_data["text"]
+                        segment_start = segment_data["start"]
+                        segment_duration = segment_data["end"] - segment_data["start"]
 
-                    for keyword in keywords:
-                        matches = process.extract(
-                            keyword,
-                            words,
-                            scorer=fuzz.ratio,
-                            limit=10
-                        )
+                        words = segment_text.split()
 
-                        for word, score, index in matches:
-                            if score >= confidence_threshold:
-                                approx_time = (index / len(words)) * (len(audio) / 16000)
+                        for keyword in keywords:
+                            matches = process.extract(
+                                keyword,
+                                words,
+                                scorer=fuzz.ratio,
+                                limit=10
+                            )
 
-                                keyword_spots[language][keyword].append({
-                                    'word': word,
-                                    'confidence': score,
-                                    'time_mark': round(approx_time, 2),
-                                    'context': ' '.join(
-                                        words[max(0, index - 2):min(len(words), index + 3)]
-                                    )
-                                })
+                            for word, score, index in matches:
+                                if score >= confidence_threshold:
+                                    # Calculate time relative to segment
+                                    relative_time = (index / len(words)) * segment_duration
+                                    # Add segment start time for absolute position
+                                    absolute_time = segment_start + relative_time
+
+                                    keyword_spots[language][keyword].append({
+                                        'word': word,
+                                        'confidence': score,
+                                        'time_mark': round(absolute_time, 2),
+                                        'context': ' '.join(
+                                            words[max(0, index - 2):min(len(words), index + 3)]
+                                        )
+                                    })
 
             return {
                 "transcriptions": transcriptions,
