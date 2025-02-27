@@ -6,3 +6,9 @@ torch
 openai-whisper
 rapidfuzz
 gunicorn
+transformers
+accelerate
+torch
+mpmath
+sympy
+urllib3

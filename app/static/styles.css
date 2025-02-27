@@ -1,0 +1,123 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+h1, h2 {
+    color: #333;
+}
+
+form {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+    width: 300px;
+}
+
+label {
+    display: block;
+    margin-top: 10px;
+    font-weight: bold;
+}
+
+input[type="file"],
+input[type="text"],
+input[type="url"],
+select,
+button,
+textarea {
+    width: 100%;
+    padding: 8px;
+    margin-top: 5px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+}
+
+textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+button {
+    background-color: #5cb85c;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+button:disabled {
+    background-color: #ccc;
+}
+
+pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    width: 90%;
+    max-width: 600px;
+    margin-bottom: 20px;
+    overflow: auto;
+}
+
+.loading {
+    display: none;
+    color: #888;
+}
+
+.tabs {
+    display: flex;
+    margin-bottom: 20px;
+    width: 300px;
+}
+
+.tab {
+    padding: 10px;
+    background-color: #ddd;
+    cursor: pointer;
+    border-radius: 4px 4px 0 0;
+    flex: 1;
+    text-align: center;
+    font-size: 0.85em;
+}
+
+.tab.active {
+    background-color: white;
+    border-bottom: 2px solid #5cb85c;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.action-buttons button {
+    flex: 1;
+}
+
+.copy-button {
+    background-color: #337ab7;
+}
+
+.reconstruct-button {
+    background-color: #f0ad4e;
+}

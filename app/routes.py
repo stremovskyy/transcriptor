@@ -6,8 +6,8 @@ import logging
 import traceback
 import time
 from flask import current_app
-from app.models import ModelCache
-from app.services import TranscriptionService
+from app.models import ModelCache, GemmaModelCache
+from app.services import TranscriptionService, TextReconstructionService
 from app.utils import allowed_file
 from urllib.parse import urlparse
 import uuid
@@ -17,11 +17,18 @@ logger = logging.getLogger(__name__)
 routes = Blueprint('routes', __name__)
 
 model_cache = ModelCache()
+gemma_model_cache = GemmaModelCache()
 
 
 @routes.route('/')
 def index():
+    # render template and styles.css
     return render_template('index.html')
+
+
+@routes.route('/health', methods=['GET'])
+def health_check():
+    return jsonify({"status": "Healthy"}), 200
 
 
 @routes.route('/preload_model', methods=['POST'])
@@ -246,6 +253,79 @@ def transcribe_json():
                 logger.info(f"Temporary file {file_path} removed")
         except Exception as cleanup_error:
             logger.error(f"Error removing file: {cleanup_error}")
+
+
+@routes.route('/preload_gemma', methods=['POST'])
+def preload_gemma():
+    try:
+        # Parse JSON data
+        data = request.get_json()
+
+        success = gemma_model_cache.load_model(model_id=data.get('model_id', 'google/gemma-2b-it'))
+        if success:
+            return jsonify({"status": "Gemma2 model preloaded successfully"}), 200
+        else:
+            return jsonify({"error": "Failed to preload Gemma2 model"}), 500
+    except Exception as e:
+        logger.error(f"Gemma2 model preload error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@routes.route('/reconstruct', methods=['POST'])
+def reconstruct_text():
+    logger.info("Text reconstruction request received")
+    try:
+        # Parse JSON data
+        data = request.get_json()
+
+        if not data:
+            logger.error("No JSON data in request")
+            raise BadRequest("No JSON data provided")
+
+        # Get required parameters
+        transcription = data.get('transcription')
+        template = data.get('template')
+        model_id = data.get('model_id', 'google/gemma-2b-it')
+
+        if not transcription:
+            logger.error("No transcription provided in JSON")
+            raise BadRequest("Missing transcription parameter")
+
+        if not template:
+            logger.error("No template provided in JSON")
+            raise BadRequest("Missing template parameter")
+
+        # Load the model if not already loaded
+        model, tokenizer = gemma_model_cache.get_model_and_tokenizer(model_id)
+
+        if not model or not tokenizer:
+            logger.error("Failed to load Gemma2 model")
+            raise RuntimeError("Failed to load Gemma2 model")
+
+        logger.info("Starting text reconstruction")
+        start_time = time.time()
+
+        result = TextReconstructionService.reconstruct_text(
+            transcription,
+            template,
+            model,
+            tokenizer,
+            max_length=int(data.get('max_length', 1500))
+        )
+
+        end_time = time.time()
+        result['processing_time'] = round(end_time - start_time, 2)
+
+        logger.info(f"Text reconstruction completed in {result['processing_time']} seconds")
+        return jsonify(result)
+
+    except BadRequest as e:
+        logger.error(f"Bad request: {e}")
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        logger.exception(f"Text reconstruction error: {e}")
+        return jsonify({"error": str(e), "details": traceback.format_exc()}), 500
+
 
 def register_routes(app):
     app.register_blueprint(routes)

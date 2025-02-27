@@ -1,13 +1,14 @@
-import os
-import time
 from logging import getLogger
-import traceback
 from typing import List, Dict, Optional, Any
-import threading
-import torch
 import whisper
+import threading
+import time
+import traceback
+import torch
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
 logger = getLogger(__name__)
+
 
 class ModelCache:
     _instance = None
@@ -95,3 +96,60 @@ class ModelCache:
     def get_model(self, model_type: str = 'base') -> Optional[Any]:
         with self._lock:
             return self._models.get(model_type) or self.load_model(model_type)
+
+
+class GemmaModelCache:
+    _instance = None
+    _lock = threading.Lock()
+
+    def __new__(cls):
+        if not cls._instance:
+            with cls._lock:
+                if not cls._instance:
+                    cls._instance = super().__new__(cls)
+                    cls._instance._model = None
+                    cls._instance._tokenizer = None
+                    cls._instance._device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        return cls._instance
+
+    def load_model(self, model_id: str = "google/gemma-2b-it") -> bool:
+        with self._lock:
+            if not self._model or not self._tokenizer:
+                logger.info("Loading Gemma2 model and tokenizer")
+                start_time = time.time()
+
+                try:
+                    # Load tokenizer
+                    self._tokenizer = AutoTokenizer.from_pretrained(model_id)
+
+                    if self._device == "cuda":
+                        torch_dtype = torch.float16
+                    elif self._device == "mps":
+                        torch_dtype = torch.float32
+                    else:
+                        torch_dtype = torch.float32
+
+                    # Load model
+                    self._model = AutoModelForCausalLM.from_pretrained(
+                        model_id,
+                        device_map=None,
+                        torch_dtype=torch_dtype
+                    )
+
+                    self._model.to(self._device)
+                    logger.info(f"Model loaded on {self._device}")
+                    return True
+                except Exception as e:
+                    logger.error(f"Error loading Gemma2 model: {e}")
+                    logger.error(traceback.format_exc())
+                    return False
+                finally:
+                    load_time = time.time() - start_time
+                    logger.info(f"Model loading time: {load_time:.2f} seconds")
+
+    def get_model_and_tokenizer(self, model_id: str = "google/gemma-2b-it"):
+        if not self._model or not self._tokenizer:
+            success = self.load_model(model_id)
+            if not success:
+                return None, None
+        return self._model, self._tokenizer

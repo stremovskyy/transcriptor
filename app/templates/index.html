@@ -4,100 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Аудіо Транскрипція</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        h1, h2 {
-            color: #333;
-        }
-        form {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
-            width: 300px;
-        }
-        label {
-            display: block;
-            margin-top: 10px;
-            font-weight: bold;
-        }
-        input[type="file"],
-        input[type="text"],
-        input[type="url"],
-        select,
-        button {
-            width: 100%;
-            padding: 8px;
-            margin-top: 5px;
-            margin-bottom: 10px;
-            border-radius: 4px;
-            border: 1px solid #ddd;
-        }
-        button {
-            background-color: #5cb85c;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
-        button:disabled {
-            background-color: #ccc;
-        }
-        pre {
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            width: 90%;
-            max-width: 600px;
-            margin-bottom: 20px;
-            overflow: auto;
-        }
-        .loading {
-            display: none;
-            color: #888;
-        }
-        .tabs {
-            display: flex;
-            margin-bottom: 20px;
-            width: 300px;
-        }
-        .tab {
-            padding: 10px;
-            background-color: #ddd;
-            cursor: pointer;
-            border-radius: 4px 4px 0 0;
-            flex: 1;
-            text-align: center;
-        }
-        .tab.active {
-            background-color: white;
-            border-bottom: 2px solid #5cb85c;
-        }
-        .tab-content {
-            display: none;
-        }
-        .tab-content.active {
-            display: block;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
     <h1>Аудіо Транскрипція</h1>
 
     <div class="tabs">
-        <div class="tab active" data-tab="file-upload">Завантажити файл</div>
-        <div class="tab" data-tab="url-upload">URL посилання</div>
+        <div class="tab active" data-tab="file-upload">Файл</div>
+        <div class="tab" data-tab="url-upload">URL</div>
+        <div class="tab" data-tab="reconstruct">Реконструкція</div>
     </div>
 
     <!-- File Upload Form -->
@@ -150,136 +65,26 @@
         <button type="submit">Транскрибувати</button>
     </form>
 
+    <!-- Reconstruction Form -->
+    <form id="reconstruct-form" class="tab-content" enctype="application/json">
+        <label for="reconstruction_text">Текст для реконструкції:</label>
+        <textarea id="reconstruction_text" name="reconstruction_text" required placeholder="Вставте транскрибований текст тут..."></textarea><br><br>
+        <label for="reconstruction_template">Шаблон реконструкції:</label>
+        <textarea id="reconstruction_template" name="reconstruction_template" required placeholder="Опишіть формат або структуру для реконструкції..."></textarea><br><br>
+        <label for="max_length">Максимальна довжина (замовчування: 1500):</label>
+        <input type="number" id="max_length" name="max_length" value="1500" min="50" max="5000">
+        <label for="model_id">Моделька:</label>
+                <select id="model_id" name="model_id">
+            <option value="google/gemma-2-2b-it">Gemma2 -2B</option>
+            <option value="google/gemma-2-9b-it">Gemma2 -9B</option>
+        </select><br><br>
+        <button type="submit">Реконструювати</button>
+    </form>
+
     <h2>Результат</h2>
-    <p id="loading" class="loading">Слухаю, що говорять...</p>
+    <p id="loading" class="loading">Обробка запиту...</p>
     <div id="result"></div>
 
-    <script>
-        // Tab functionality
-        document.querySelectorAll('.tab').forEach(tab => {
-            tab.addEventListener('click', function() {
-                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-
-                this.classList.add('active');
-                const tabId = this.getAttribute('data-tab');
-                document.getElementById(tabId === 'file-upload' ? 'upload-form' : 'url-form').classList.add('active');
-            });
-        });
-
-        // File upload form handler
-        document.getElementById('upload-form').addEventListener('submit', async function(event) {
-            event.preventDefault();
-            const formData = new FormData();
-            const fileField = document.querySelector('input[type="file"]');
-            const langField = document.querySelector('input[name="lang"]');
-            const keywordsField = document.querySelector('input[name="keywords"]');
-            const confidenceThresholdField = document.querySelector('input[name="confidence_threshold"]');
-            const modelField = document.querySelector('select[name="model"]');
-            const button = event.target.querySelector('button');
-            const loading = document.getElementById('loading');
-
-            formData.append('file', fileField.files[0]);
-            formData.append('lang', langField.value);
-            formData.append('keywords', keywordsField.value);
-            formData.append('confidence_threshold', confidenceThresholdField.value);
-            formData.append('model', modelField.value);
-
-            button.disabled = true;
-            loading.style.display = 'block';
-            document.getElementById('result').textContent = '';
-
-            try {
-                const startTime = performance.now();
-                const response = await fetch('/transcribe', {
-                    method: 'POST',
-                    body: formData
-                });
-                const endTime = performance.now();
-                const result = await response.json();
-                if (response.ok) {
-                    displayResult(result, (endTime - startTime) / 1000);
-                } else {
-                    document.getElementById('result').textContent = `Error: ${result.error}`;
-                }
-            } catch (error) {
-                document.getElementById('result').textContent = `Error: ${error.message}`;
-            } finally {
-                button.disabled = false;
-                loading.style.display = 'none';
-            }
-        });
-
-        // URL form handler
-        document.getElementById('url-form').addEventListener('submit', async function(event) {
-            event.preventDefault();
-            const urlField = document.getElementById('file_url');
-            const langField = document.getElementById('url_lang');
-            const keywordsField = document.getElementById('url_keywords');
-            const confidenceThresholdField = document.getElementById('url_confidence_threshold');
-            const modelField = document.getElementById('url_model');
-            const button = event.target.querySelector('button');
-            const loading = document.getElementById('loading');
-
-            const jsonData = {
-                file_url: urlField.value,
-                languages: langField.value.split(',').map(lang => lang.trim()),
-                keywords: keywordsField.value ? keywordsField.value.split(',').map(kw => kw.trim()) : [],
-                confidence_threshold: parseInt(confidenceThresholdField.value),
-                model: modelField.value
-            };
-
-            button.disabled = true;
-            loading.style.display = 'block';
-            document.getElementById('result').textContent = '';
-
-            try {
-                const startTime = performance.now();
-                const response = await fetch('/pull', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(jsonData)
-                });
-                const endTime = performance.now();
-                const result = await response.json();
-                if (response.ok) {
-                    displayResult(result, result.processing_time || (endTime - startTime) / 1000);
-                } else {
-                    document.getElementById('result').textContent = `Error: ${result.error}`;
-                }
-            } catch (error) {
-                document.getElementById('result').textContent = `Error: ${error.message}`;
-            } finally {
-                button.disabled = false;
-                loading.style.display = 'none';
-            }
-        });
-
-        // Function to display results (shared between both forms)
-        function displayResult(result, processingTime) {
-            let resultHtml = `Processing Time: ${processingTime.toFixed(2)} seconds<br>`;
-
-            // If URL was used, show it
-            if (result.original_url) {
-                resultHtml += `<strong>Original URL:</strong> ${result.original_url}<br><br>`;
-            }
-
-            for (const [lang, transcription] of Object.entries(result.transcriptions)) {
-                resultHtml += `<strong>${lang}:</strong><pre>${transcription}</pre><br>`;
-                if (result.keyword_spots[lang]) {
-                    for (const [keyword, positions] of Object.entries(result.keyword_spots[lang])) {
-                        if (positions.length === 0) {
-                            continue;
-                        }
-
-                        resultHtml += `<strong>Ключове слово "${keyword}":</strong> Знайдено<br>`;
-                    }
-                }
-            }
-            document.getElementById('result').innerHTML = resultHtml;
-        }
-    </script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
