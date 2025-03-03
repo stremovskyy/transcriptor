@@ -1,123 +1,370 @@
+:root {
+  --primary-color: #4361ee;
+  --primary-hover: #3a56d4;
+  --secondary-color: #48bfe3;
+  --success-color: #57cc99;
+  --warning-color: #f9c74f;
+  --danger-color: #e63946;
+  --light-color: #f8f9fa;
+  --dark-color: #212529;
+  --gray-color: #6c757d;
+  --light-gray: #e9ecef;
+  --border-radius: 8px;
+  --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --transition: all 0.3s ease;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
 body {
-    font-family: Arial, sans-serif;
-    background-color: #f4f4f4;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+  font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background-color: #f7f9fc;
+  color: var(--dark-color);
+  line-height: 1.6;
+  margin: 0;
+  padding: 0;
 }
 
-h1, h2 {
-    color: #333;
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
 }
 
-form {
-    background: white;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    margin-bottom: 20px;
-    width: 300px;
+/* Typography */
+.main-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 2rem;
+  color: var(--primary-color);
+}
+
+.section-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  color: var(--dark-color);
+}
+
+/* Language Switcher */
+.language-switcher {
+  display: flex;
+  justify-content: flex-end;
+  margin: 1rem 0;
+  padding: 0.5rem;
+}
+
+.lang-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  background-color: var(--light-gray);
+  color: var(--dark-color);
+  font-weight: 500;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: var(--transition);
+  margin-left: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lang-btn.active {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.lang-btn:hover:not(.active) {
+  background-color: #dce1e9;
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  background-color: white;
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
+  overflow: hidden;
+  margin-bottom: 0;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.tab {
+  flex: 1;
+  text-align: center;
+  padding: 1rem;
+  cursor: pointer;
+  font-weight: 500;
+  transition: var(--transition);
+  border-bottom: 3px solid transparent;
+}
+
+.tab:hover:not(.active) {
+  background-color: var(--light-gray);
+}
+
+.tab.active {
+  background-color: white;
+  border-bottom: 3px solid var(--primary-color);
+  color: var(--primary-color);
+}
+
+/* Forms */
+.form-card {
+  background-color: white;
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
+  padding: 1.5rem;
+  box-shadow: var(--box-shadow);
+  margin-bottom: 2rem;
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+.form-group {
+  margin-bottom: 1.25rem;
 }
 
 label {
-    display: block;
-    margin-top: 10px;
-    font-weight: bold;
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: var(--dark-color);
 }
 
 input[type="file"],
 input[type="text"],
 input[type="url"],
+input[type="number"],
+input[type="password"],
 select,
-button,
 textarea {
-    width: 100%;
-    padding: 8px;
-    margin-top: 5px;
-    margin-bottom: 10px;
-    border-radius: 4px;
-    border: 1px solid #ddd;
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 1rem;
+  border: 1px solid #ddd;
+  border-radius: var(--border-radius);
+  background-color: var(--light-color);
+  transition: var(--transition);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
 }
 
 textarea {
-    min-height: 100px;
-    resize: vertical;
+  min-height: 120px;
+  resize: vertical;
 }
 
-button {
-    background-color: #5cb85c;
-    color: white;
-    border: none;
-    cursor: pointer;
+.select-dropdown {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23212529' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1em;
 }
 
-button:disabled {
-    background-color: #ccc;
+/* Buttons */
+.btn-submit,
+.btn-primary {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  text-align: center;
+  color: white;
+  background-color: var(--primary-color);
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: var(--transition);
+  width: 100%;
 }
 
-pre {
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    background: white;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    width: 90%;
-    max-width: 600px;
-    margin-bottom: 20px;
-    overflow: auto;
+.btn-submit:hover,
+.btn-primary:hover {
+  background-color: var(--primary-hover);
+  transform: translateY(-2px);
+}
+
+.btn-submit:active,
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+/* API Key container */
+.api-key-container {
+  background-color: white;
+  padding: 1.5rem;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  margin-bottom: 1.5rem;
+}
+
+.input-with-button {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.input-with-button input {
+  flex: 1;
+}
+
+.input-with-button button {
+  width: auto;
+}
+
+/* Result section */
+.result-section {
+  background-color: white;
+  border-radius: var(--border-radius);
+  padding: 1.5rem;
+  box-shadow: var(--box-shadow);
+  margin-top: 2rem;
+}
+
+.result-content {
+  background-color: var(--light-color);
+  border-radius: var(--border-radius);
+  padding: 1rem;
+  margin-top: 1rem;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: monospace;
+  min-height: 200px;
+  max-height: 500px;
+  overflow-y: auto;
 }
 
 .loading {
-    display: none;
-    color: #888;
+  display: none;
+  text-align: center;
+  margin: 1rem 0;
+  color: var(--gray-color);
 }
 
-.tabs {
-    display: flex;
-    margin-bottom: 20px;
-    width: 300px;
+/* Helper classes */
+.hidden {
+  display: none !important;
 }
 
-.tab {
-    padding: 10px;
-    background-color: #ddd;
-    cursor: pointer;
-    border-radius: 4px 4px 0 0;
-    flex: 1;
-    text-align: center;
-    font-size: 0.85em;
+.success-text {
+  color: var(--success-color);
+  font-weight: 500;
+  margin-top: 0.5rem;
+  display: inline-block;
 }
 
-.tab.active {
-    background-color: white;
-    border-bottom: 2px solid #5cb85c;
-}
-
-.tab-content {
-    display: none;
-}
-
-.tab-content.active {
-    display: block;
-}
-
+/* Action buttons */
 .action-buttons {
-    display: flex;
-    gap: 10px;
-    margin-top: 10px;
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
 }
 
 .action-buttons button {
-    flex: 1;
+  flex: 1;
+  padding: 0.6rem;
 }
 
 .copy-button {
-    background-color: #337ab7;
+  background-color: var(--secondary-color);
+}
+
+.copy-button:hover {
+  background-color: #3aa5c9;
 }
 
 .reconstruct-button {
-    background-color: #f0ad4e;
+  background-color: var(--warning-color);
+}
+
+.reconstruct-button:hover {
+  background-color: #e6b63b;
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+
+  .main-title {
+    font-size: 2rem;
+  }
+
+  .form-card {
+    padding: 1rem;
+  }
+
+  .tabs {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .tab {
+    flex: 1 0 33%;
+    padding: 0.75rem 0.5rem;
+    font-size: 0.9rem;
+  }
+
+  .input-with-button {
+    flex-direction: column;
+  }
+
+  .input-with-button button {
+    width: 100%;
+    margin-top: 0.5rem;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary-color: #6366f1;
+    --primary-hover: #818cf8;
+    --light-color: #1f2937;
+    --dark-color: #f9fafb;
+    --light-gray: #374151;
+  }
+
+  body {
+    background-color: #111827;
+  }
+
+  .form-card,
+  .api-key-container,
+  .result-section,
+  .tabs {
+    background-color: #1f2937;
+  }
+
+  .tab.active {
+    background-color: #1f2937;
+  }
+
+  input, select, textarea {
+    background-color: #374151;
+    color: #f9fafb;
+    border-color: #4b5563;
+  }
+
+  .result-content {
+    background-color: #374151;
+    color: #f9fafb;
+  }
 }

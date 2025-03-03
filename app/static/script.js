@@ -1,3 +1,228 @@
+// Language translations
+const translations = {
+    'uk': {
+        'page-title': 'Аудіо Транскрипція',
+        'tab-file': 'Файл',
+        'tab-url': 'URL',
+        'tab-reconstruct': 'Реконструкція',
+        'api-key': 'API Ключ:',
+        'save-api-key': 'Зберегти',
+        'api-key-saved': 'Збережено',
+        'api-key-placeholder': 'Введіть API ключ...',
+        'api-key-required': 'API ключ потрібен для цієї операції',
+        'choose-file': 'Оберіть MP3 Файл:',
+        'languages': 'Мови (через кому, замовчування: Ukrainian):',
+        'keywords': 'Ключові слова (через кому):',
+        'confidence-threshold': 'Поріг довіри (замовчування: 65):',
+        'model': 'Моделька:',
+        'model-tiny': 'Крихітка',
+        'model-base': 'Базова',
+        'model-small': 'Маленька',
+        'model-medium': 'Середня',
+        'model-large': 'Велика',
+        'model-large-v2': 'Велика v2',
+        'model-large-v3': 'Велика v3',
+        'model-large-v3-turbo': 'Велика v3 Turbo',
+        'model-turbo': 'Турбо',
+        'upload-button': 'Завантажити',
+        'url-file': 'URL MP3 файлу:',
+        'url-languages': 'Мови (через кому, замовчування: Ukrainian):',
+        'url-keywords': 'Ключові слова (через кому):',
+        'url-confidence-threshold': 'Поріг довіри (замовчування: 65):',
+        'url-model': 'Моделька:',
+        'url-model-tiny': 'Крихітка',
+        'url-model-base': 'Базова',
+        'url-model-small': 'Маленька',
+        'url-model-medium': 'Середня',
+        'url-model-large': 'Велика',
+        'url-model-large-v2': 'Велика v2',
+        'url-model-large-v3': 'Велика v3',
+        'url-model-large-v3-turbo': 'Велика v3 Turbo',
+        'url-model-turbo': 'Турбо',
+        'transcribe-button': 'Транскрибувати',
+        'reconstruction-text': 'Текст для реконструкції:',
+        'reconstruction-template': 'Шаблон реконструкції:',
+        'max-length': 'Максимальна довжина (замовчування: 1500):',
+        'model-id': 'Моделька:',
+        'model-gemma-2b': 'Gemma2 -2B',
+        'model-gemma-9b': 'Gemma2 -9B',
+        'reconstruct-button': 'Реконструювати',
+        'result-title': 'Результат',
+        'processing': 'Обробка запиту...',
+        'listening': 'Слухаю, що говорять...',
+        'reconstructing': 'Реконструюю текст...',
+        'copy-button': 'Копіювати',
+        'copied': 'Скопійовано!',
+        'reconstruct-button-text': 'Реконструювати',
+        'processing-time': 'Час обробки: {time} секунд',
+        'original-url': 'Оригінальний URL:',
+        'keyword-found': 'Ключове слово "{keyword}": Знайдено',
+        'original-text': 'Оригінальний текст:',
+        'template': 'Шаблон:'
+    },
+    'en': {
+        'page-title': 'Audio Transcription',
+        'tab-file': 'File',
+        'tab-url': 'URL',
+        'tab-reconstruct': 'Reconstruction',
+        'api-key': 'API Key:',
+        'save-api-key': 'Save',
+        'api-key-saved': 'Saved',
+        'api-key-placeholder': 'Enter API key...',
+        'api-key-required': 'API key is required for this operation',
+        'choose-file': 'Choose MP3 File:',
+        'languages': 'Languages (comma-separated, default: Ukrainian):',
+        'keywords': 'Keywords (comma-separated):',
+        'confidence-threshold': 'Confidence Threshold (default: 65):',
+        'model': 'Model:',
+        'model-tiny': 'Tiny',
+        'model-base': 'Base',
+        'model-small': 'Small',
+        'model-medium': 'Medium',
+        'model-large': 'Large',
+        'model-large-v2': 'Large v2',
+        'model-large-v3': 'Large v3',
+        'model-large-v3-turbo': 'Large v3 Turbo',
+        'model-turbo': 'Turbo',
+        'upload-button': 'Upload',
+        'url-file': 'MP3 File URL:',
+        'url-languages': 'Languages (comma-separated, default: Ukrainian):',
+        'url-keywords': 'Keywords (comma-separated):',
+        'url-confidence-threshold': 'Confidence Threshold (default: 65):',
+        'url-model': 'Model:',
+        'url-model-tiny': 'Tiny',
+        'url-model-base': 'Base',
+        'url-model-small': 'Small',
+        'url-model-medium': 'Medium',
+        'url-model-large': 'Large',
+        'url-model-large-v2': 'Large v2',
+        'url-model-large-v3': 'Large v3',
+        'url-model-large-v3-turbo': 'Large v3 Turbo',
+        'url-model-turbo': 'Turbo',
+        'transcribe-button': 'Transcribe',
+        'reconstruction-text': 'Text for Reconstruction:',
+        'reconstruction-template': 'Reconstruction Template:',
+        'max-length': 'Maximum Length (default: 1500):',
+        'model-id': 'Model:',
+        'model-gemma-2b': 'Gemma2 -2B',
+        'model-gemma-9b': 'Gemma2 -9B',
+        'reconstruct-button': 'Reconstruct',
+        'result-title': 'Result',
+        'processing': 'Processing request...',
+        'listening': 'Listening to audio...',
+        'reconstructing': 'Reconstructing text...',
+        'copy-button': 'Copy',
+        'copied': 'Copied!',
+        'reconstruct-button-text': 'Reconstruct',
+        'processing-time': 'Processing Time: {time} seconds',
+        'original-url': 'Original URL:',
+        'keyword-found': 'Keyword "{keyword}": Found',
+        'original-text': 'Original Text:',
+        'template': 'Template:'
+    }
+};
+
+// Current language
+let currentLang = 'uk';
+
+// Function to set page language
+function setLanguage(lang) {
+    currentLang = lang;
+    document.documentElement.lang = lang;
+
+    // Update all elements with data-lang-key attribute
+    document.querySelectorAll('[data-lang-key]').forEach(element => {
+        const key = element.getAttribute('data-lang-key');
+        if (translations[lang][key]) {
+            if (element.tagName === 'INPUT' && element.getAttribute('placeholder')) {
+                element.setAttribute('placeholder', translations[lang][key]);
+            } else {
+                element.textContent = translations[lang][key];
+            }
+        }
+    });
+
+    // Update placeholders for textareas and API key
+    if (lang === 'uk') {
+        document.getElementById('reconstruction_text').placeholder = 'Вставте транскрибований текст тут...';
+        document.getElementById('reconstruction_template').placeholder = 'Опишіть формат або структуру для реконструкції...';
+        document.getElementById('api-key').placeholder = 'Введіть API ключ...';
+    } else {
+        document.getElementById('reconstruction_text').placeholder = 'Paste transcribed text here...';
+        document.getElementById('reconstruction_template').placeholder = 'Describe format or structure for reconstruction...';
+        document.getElementById('api-key').placeholder = 'Enter API key...';
+    }
+
+    // Update active button
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.querySelector(`.lang-btn[data-lang="${lang}"]`).classList.add('active');
+
+    // Save preference
+    localStorage.setItem('preferredLanguage', lang);
+}
+
+// Language switcher functionality
+document.querySelectorAll('.lang-btn').forEach(button => {
+    button.addEventListener('click', function() {
+        const lang = this.getAttribute('data-lang');
+        setLanguage(lang);
+    });
+});
+
+// API Key functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const apiKeyField = document.getElementById('api-key');
+    const saveButton = document.getElementById('save-api-key');
+    const statusSpan = document.getElementById('api-key-status');
+
+    // Load saved API key
+    const savedApiKey = localStorage.getItem('apiKey');
+    if (savedApiKey) {
+        apiKeyField.value = savedApiKey;
+    }
+
+    // Save API key
+    saveButton.addEventListener('click', function() {
+        const apiKey = apiKeyField.value.trim();
+        if (apiKey) {
+            localStorage.setItem('apiKey', apiKey);
+            statusSpan.classList.remove('hidden');
+            setTimeout(() => {
+                statusSpan.classList.add('hidden');
+            }, 2000);
+        }
+    });
+
+    // Load saved language preference
+    const savedLang = localStorage.getItem('preferredLanguage');
+    if (savedLang && ['uk', 'en'].includes(savedLang)) {
+        setLanguage(savedLang);
+    }
+});
+
+// Helper function to get API key
+function getApiKey() {
+    return localStorage.getItem('apiKey') || '';
+}
+
+// Helper function to create headers with API key
+function createHeaders(contentType = null) {
+    const headers = {};
+    const apiKey = getApiKey();
+
+    if (apiKey) {
+        headers['x-api-key'] = apiKey;
+    }
+
+    if (contentType) {
+        headers['Content-Type'] = contentType;
+    }
+
+    return headers;
+}
+
 // Tab functionality
 document.querySelectorAll('.tab').forEach(tab => {
     tab.addEventListener('click', function() {
@@ -15,6 +240,18 @@ document.querySelectorAll('.tab').forEach(tab => {
         }
     });
 });
+
+// Utility function to get localized text
+function getLocalizedText(key, replacements = {}) {
+    let text = translations[currentLang][key] || key;
+
+    // Replace placeholders with actual values
+    Object.keys(replacements).forEach(placeholder => {
+        text = text.replace(`{${placeholder}}`, replacements[placeholder]);
+    });
+
+    return text;
+}
 
 // File upload form handler
 document.getElementById('upload-form').addEventListener('submit', async function(event) {
@@ -36,13 +273,14 @@ document.getElementById('upload-form').addEventListener('submit', async function
 
     button.disabled = true;
     loading.style.display = 'block';
-    loading.textContent = 'Слухаю, що говорять...';
+    loading.textContent = getLocalizedText('listening');
     document.getElementById('result').textContent = '';
 
     try {
         const startTime = performance.now();
         const response = await fetch('/transcribe', {
             method: 'POST',
+            headers: createHeaders(), // No Content-Type for FormData
             body: formData
         });
         const endTime = performance.now();
@@ -81,16 +319,14 @@ document.getElementById('url-form').addEventListener('submit', async function(ev
 
     button.disabled = true;
     loading.style.display = 'block';
-    loading.textContent = 'Слухаю, що говорять...';
+    loading.textContent = getLocalizedText('listening');
     document.getElementById('result').textContent = '';
 
     try {
         const startTime = performance.now();
         const response = await fetch('/pull', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: createHeaders('application/json'),
             body: JSON.stringify(jsonData)
         });
         const endTime = performance.now();
@@ -127,16 +363,14 @@ document.getElementById('reconstruct-form').addEventListener('submit', async fun
 
     button.disabled = true;
     loading.style.display = 'block';
-    loading.textContent = 'Реконструюю текст...';
+    loading.textContent = getLocalizedText('reconstructing');
     document.getElementById('result').textContent = '';
 
     try {
         const startTime = performance.now();
         const response = await fetch('/reconstruct', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: createHeaders('application/json'),
             body: JSON.stringify(jsonData)
         });
         const endTime = performance.now();
@@ -156,19 +390,19 @@ document.getElementById('reconstruct-form').addEventListener('submit', async fun
 
 // Function to display transcription results
 function displayResult(result, processingTime) {
-    let resultHtml = `<div>Processing Time: ${processingTime.toFixed(2)} seconds</div>`;
+    let resultHtml = `<div>${getLocalizedText('processing-time', { time: processingTime.toFixed(2) })}</div>`;
 
     // If URL was used, show it
     if (result.original_url) {
-        resultHtml += `<div><strong>Original URL:</strong> ${result.original_url}</div><br>`;
+        resultHtml += `<div><strong>${getLocalizedText('original-url')}</strong> ${result.original_url}</div><br>`;
     }
 
     for (const [lang, transcription] of Object.entries(result.transcriptions)) {
         resultHtml += `<div><strong>${lang}:</strong>
         <pre id="transcription-${lang}">${transcription}</pre>
         <div class="action-buttons">
-            <button class="copy-button" data-text="${transcription.replace(/"/g, '&quot;')}">Копіювати</button>
-            <button class="reconstruct-button" data-text="${transcription.replace(/"/g, '&quot;')}">Реконструювати</button>
+            <button class="copy-button" data-text="${transcription.replace(/"/g, '&quot;')}">${getLocalizedText('copy-button')}</button>
+            <button class="reconstruct-button" data-text="${transcription.replace(/"/g, '&quot;')}">${getLocalizedText('reconstruct-button-text')}</button>
         </div>
         </div><br>`;
 
@@ -179,7 +413,7 @@ function displayResult(result, processingTime) {
                     continue;
                 }
 
-                keywordResults += `<div><strong>Ключове слово "${keyword}":</strong> Знайдено</div>`;
+                keywordResults += `<div><strong>${getLocalizedText('keyword-found', { keyword: keyword })}</strong></div>`;
             }
             if (keywordResults) {
                 resultHtml += `<div>${keywordResults}</div><br>`;
@@ -195,7 +429,7 @@ function displayResult(result, processingTime) {
             navigator.clipboard.writeText(text)
                 .then(() => {
                     const originalText = this.textContent;
-                    this.textContent = 'Скопійовано!';
+                    this.textContent = getLocalizedText('copied');
                     setTimeout(() => {
                         this.textContent = originalText;
                     }, 2000);
@@ -227,13 +461,13 @@ function displayResult(result, processingTime) {
 
 // Function to display reconstruction results
 function displayReconstructionResult(result) {
-    let resultHtml = `<div>Processing Time: ${result.processing_time.toFixed(2)} seconds</div><br>`;
+    let resultHtml = `<div>${getLocalizedText('processing-time', { time: result.processing_time.toFixed(2) })}</div><br>`;
 
-    resultHtml += `<div><strong>Оригінальний текст:</strong><pre>${result.original_transcription}</pre></div><br>`;
-    resultHtml += `<div><strong>Шаблон:</strong><pre>${result.template}</pre></div><br>`;
-    resultHtml += `<div><strong>Реконструйований текст:</strong><pre id="reconstructed-text">${result.reconstructed_text}</pre>
+    resultHtml += `<div><strong>${getLocalizedText('original-text')}</strong><pre>${result.original_transcription}</pre></div><br>`;
+    resultHtml += `<div><strong>${getLocalizedText('template')}</strong><pre>${result.template}</pre></div><br>`;
+    resultHtml += `<div><strong>${currentLang === 'uk' ? 'Реконструйований текст' : 'Reconstructed Text'}:</strong><pre id="reconstructed-text">${result.reconstructed_text}</pre>
         <div class="action-buttons">
-            <button class="copy-button" data-text="${result.reconstructed_text.replace(/"/g, '&quot;')}">Копіювати</button>
+            <button class="copy-button" data-text="${result.reconstructed_text.replace(/"/g, '&quot;')}">${getLocalizedText('copy-button')}</button>
         </div>
     </div>`;
 
@@ -246,7 +480,7 @@ function displayReconstructionResult(result) {
             navigator.clipboard.writeText(text)
                 .then(() => {
                     const originalText = this.textContent;
-                    this.textContent = 'Скопійовано!';
+                    this.textContent = getLocalizedText('copied');
                     setTimeout(() => {
                         this.textContent = originalText;
                     }, 2000);

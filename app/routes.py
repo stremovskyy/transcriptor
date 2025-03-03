@@ -8,10 +8,12 @@ import time
 from flask import current_app
 from app.models import ModelCache, GemmaModelCache
 from app.services import TranscriptionService, TextReconstructionService
+from app.middleware import api_key_required, check_ui_enabled
 from app.utils import allowed_file
 from urllib.parse import urlparse
 import uuid
 import requests
+
 
 logger = logging.getLogger(__name__)
 routes = Blueprint('routes', __name__)
@@ -21,6 +23,7 @@ gemma_model_cache = GemmaModelCache()
 
 
 @routes.route('/')
+@check_ui_enabled
 def index():
     # render template and styles.css
     return render_template('index.html')
@@ -32,6 +35,7 @@ def health_check():
 
 
 @routes.route('/preload_model', methods=['POST'])
+@api_key_required
 def preload_model():
     model_type = request.json.get('model', 'base')
     try:
@@ -43,6 +47,7 @@ def preload_model():
 
 
 @routes.route('/transcribe', methods=['POST'])
+@api_key_required
 def transcribe():
     logger.info(f"Transcription request received")
     try:
@@ -128,6 +133,7 @@ def transcribe():
 
 
 @routes.route('/pull', methods=['POST'])
+@api_key_required
 def transcribe_json():
     logger.info("JSON transcription request received")
     try:
@@ -256,6 +262,7 @@ def transcribe_json():
 
 
 @routes.route('/preload_gemma', methods=['POST'])
+@api_key_required
 def preload_gemma():
     try:
         # Parse JSON data
@@ -272,6 +279,7 @@ def preload_gemma():
 
 
 @routes.route('/reconstruct', methods=['POST'])
+@api_key_required
 def reconstruct_text():
     logger.info("Text reconstruction request received")
     try:
@@ -325,7 +333,6 @@ def reconstruct_text():
     except Exception as e:
         logger.exception(f"Text reconstruction error: {e}")
         return jsonify({"error": str(e), "details": traceback.format_exc()}), 500
-
 
 def register_routes(app):
     app.register_blueprint(routes)

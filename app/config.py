@@ -27,4 +27,14 @@ def configure_app(app):
         )
     )
 
+    app.config.update(
+        API_KEY_ENABLED=ConfigManager.get_env('API_KEY_ENABLED', 'true').lower() == 'true',
+        API_KEY=ConfigManager.get_env('API_KEY', 'default-api-key-change-me'),
+        UI_ENABLED=ConfigManager.get_env('UI_ENABLED', 'true').lower() == 'true'
+    )
+
+    # Log configuration (but don't log the API key)
+    logger.info(f"API_KEY_ENABLED: {app.config['API_KEY_ENABLED']}")
+    logger.info(f"UI_ENABLED: {app.config['UI_ENABLED']}")
+
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)

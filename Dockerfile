@@ -45,6 +45,7 @@ COPY --chown=appuser:appuser app app
 COPY --chown=appuser:appuser gunicorn_config.py .
 COPY --chown=appuser:appuser app.py .
 COPY --chown=appuser:appuser run.py .
+COPY --chown=appuser:appuser .env.example .
 
 # Expose the Flask application port
 EXPOSE 8080
