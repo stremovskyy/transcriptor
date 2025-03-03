@@ -9,7 +9,7 @@ def api_key_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         # Check if API key validation is enabled
-        if not current_app.config.get('API_KEY_ENABLED', True):
+        if not current_app.config.get('API_KEY_ENABLED', False):
             return f(*args, **kwargs)
 
         # Get the API key from the request headers
