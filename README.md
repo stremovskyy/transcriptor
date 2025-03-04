@@ -1,208 +1,210 @@
-# **Transcription Service Application**
+# Audio Transcription & Text Reconstruction Service
 
-## **Overview**
-The Transcription Service Application is a Flask-based API that provides robust audio transcription capabilities using the Whisper model. This application supports multiple languages, keyword spotting, and real-time transcription of uploaded audio files. It includes advanced GPU/CPU handling and integrates rate-limiting to ensure performance and security.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-blue.svg)](https://www.python.org/downloads/)
 
----
+A production-ready Flask application for audio transcription using OpenAI's Whisper models and text reconstruction with Google's Gemma models. Provides both REST API endpoints and a simple web interface.
 
-## **Features**
-- **Audio Transcription**: Transcribe audio files into text using Whisper's advanced models.
-- **Multi-language Support**: Process audio in multiple languages (e.g., Ukrainian).
-- **Keyword Spotting**: Identify and highlight keywords within transcriptions.
-- **Rate Limiting**: Prevent abuse with customizable limits for API endpoints.
-- **Scalable**: Efficiently manages GPU and CPU resources for high-performance processing.
-- **Configurable**: Environment-based configurations for easy customization.
+## Key Features
 
----
+- 🎙️ Audio transcription for multiple languages (Ukrainian, English, etc.)
+- 🔍 Keyword spotting with confidence thresholds
+- ⚡ GPU acceleration support (CUDA)
+- 📝 Text reconstruction using Gemma language models
+- 🔐 API key authentication
+- 📈 Rate limiting and request logging
+- 🧩 Modular architecture with model caching
+- 🌐 Both file upload and remote URL processing
+- 📊 Detailed logging and performance metrics
 
-## **Getting Started**
+## Table of Contents
 
-### **Prerequisites**
-Ensure you have the following installed:
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Usage](#usage)
+- [API Documentation](#api-documentation)
+- [Deployment](#deployment)
+- [Contributing](#contributing)
+- [License](#license)
+
+## Installation
+
+### Prerequisites
+
 - Python 3.8+
-- pip (Python package installer)
-- GPU (optional but recommended for performance)
+- FFmpeg (for audio processing)
+- CUDA-enabled GPU (recommended for better performance)
 
----
+```bash
+# Clone repository
+git clone https://github.com/yourusername/audio-transcription-service.git
+cd audio-transcription-service
 
-### **Setup Instructions**
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-1. **Clone the Repository**:
-   ```bash
-   git clone https://github.com/your-repo/transcription-service.git
-   cd transcription-service
-   ```
+# Install dependencies
+pip install -r requirements.txt
 
-2. **Install Dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Set Up Environment Variables**:
-   Create a `.env` file in the root directory and add the following:
-   ```env
-   FLASK_ENV=development
-   FLASK_HOST=0.0.0.0
-   FLASK_PORT=8080
-   UPLOAD_FOLDER=/tmp
-   ALLOWED_EXTENSIONS=mp3,wav,m4a
-   ```
-
-4. **Run the Application**:
-   ```bash
-   python app.py
-   ```
-
-5. **Access the Application**:
-   Visit [http://localhost:8080](http://localhost:8080) in your browser.
-
----
-
-## **Project Structure**
-```plaintext
-transcription_project/
-│
-├── app/
-│   ├── __init__.py        # Initializes Flask app
-│   ├── routes.py          # API route handlers
-│   ├── config.py          # Application configurations
-│   ├── limiter.py         # Rate limiter logic
-│   ├── models.py          # Whisper model caching and loading
-│   ├── services.py        # Transcription logic
-│   ├── managers.py        # Config and logger managers
-│   └── utils.py           # Helper functions
-│
-├── templates/
-│   └── index.html         # Frontend HTML templates
-│
-├── logs/
-│   └── transcription_app.log # Log files
-│
-├── .env                   # Environment variables
-├── app.py                 # Application entry point
-├── requirements.txt       # Python dependencies
-├── README.md              # Documentation
-├── Dockerfile             # Docker configuration
-└── docker-compose.yml     # Docker Compose configuration
+# Install FFmpeg (Ubuntu/Debian)
+sudo apt-get install ffmpeg
 ```
 
----
+## Configuration
 
-## **API Documentation**
+Create `.env` file in the project root:
 
-### **Endpoints**
-#### **1. Home**
-- **URL**: `/`
-- **Method**: `GET`
-- **Description**: Returns the index page.
+```ini
+# Core Configuration
+FLASK_ENV=production
+FLASK_HOST=0.0.0.0
+FLASK_PORT=8080
 
-#### **2. Preload Model**
-- **URL**: `/preload_model`
-- **Method**: `POST`
-- **Rate Limit**: 10 requests per minute
-- **Payload**:
-  ```json
-  {
-      "model": "base"
-  }
-  ```
-- **Response**:
-  ```json
-  {
-      "status": "Model preloaded successfully"
-  }
-  ```
+# File Handling
+UPLOAD_FOLDER=./uploads
+ALLOWED_EXTENSIONS=mp3,wav
+MAX_CONTENT_LENGTH=52428800  # 50MB
 
-#### **3. Transcribe Audio**
-- **URL**: `/transcribe`
-- **Method**: `POST`
-- **Rate Limit**: 500 requests per hour
-- **Payload**:
-  - Multipart form-data:
-    - `file` (required): The audio file to transcribe.
-    - `lang` (optional): Comma-separated list of languages. Default: `Ukrainian`.
-    - `model` (optional): Model type (`tiny`, `base`, `small`). Default: `base`.
-    - `keywords` (optional): Comma-separated list of keywords for spotting.
-    - `confidence_threshold` (optional): Minimum confidence score for keyword matching. Default: `80`.
-- **Response**:
-  ```json
-  {
-      "transcriptions": {
-          "Ukrainian": "Transcribed text in Ukrainian",
-          "English": "Transcribed text in English"
-      },
-      "keyword_spots": {
-          "Ukrainian": {
-              "keyword1": [
-                  {
-                      "word": "keyword1",
-                      "confidence": 85,
-                      "time_mark": 12.5,
-                      "context": "context of the keyword"
-                  }
-              ]
-          }
-      },
-      "processing_time": 15.2
-  }
-  ```
+# Security
+API_KEY_ENABLED=true
+API_KEY=your-secure-key-here
 
----
+# Features
+UI_ENABLED=true
+```
 
-## **Configuration**
+Key Environment Variables:
+- `API_KEY`: Secret key for API authentication
+- `CONFIDENCE_THRESHOLD`: Default confidence level for keyword matching (0-100)
+- `GPU_MEMORY_LIMIT`: Set VRAM allocation limit for CUDA
 
-All configurations are managed via environment variables in a `.env` file:
+## Usage
 
-| Variable             | Description                              | Default Value |
-|----------------------|------------------------------------------|---------------|
-| `FLASK_ENV`          | Environment (`development` or `production`) | `development` |
-| `FLASK_HOST`         | Hostname for the Flask app              | `localhost`   |
-| `FLASK_PORT`         | Port for the Flask app                  | `8080`        |
-| `UPLOAD_FOLDER`      | Directory for uploaded files            | `/tmp`        |
-| `MAX_CONTENT_LENGTH` | Maximum upload size in bytes            | `50MB`        |
-| `ALLOWED_EXTENSIONS` | Allowed file extensions (comma-separated) | `mp3`         |
+### Running the Application
 
----
+```bash
+# Development mode
+FLASK_ENV=development flask run --port 8080
 
-## **Logging**
-Logs are saved to `logs/transcription_app.log`. They include:
-- API requests
-- File handling details
-- Model loading status
-- Errors and exceptions
+# Production mode (using Gunicorn)
+gunicorn --config gunicorn_config.py app:app
+```
 
----
+### Health Check
+```bash
+curl http://localhost:8080/health
+```
 
-## **Testing**
-To test the application:
-1. Use a tool like [Postman](https://www.postman.com/) or `curl` to send requests to the endpoints.
-2. Example `curl` command for transcription:
+## API Documentation
+
+### Endpoints
+
+#### POST `/transcribe`
+Transcribe audio from file upload
+
+**Request:**
+```bash
+curl -X POST -H "X-API-Key: your-api-key" \
+  -F "file=@audio.mp3" \
+  http://localhost:8080/transcribe
+```
+
+**Parameters:**
+- `file`: Audio file to transcribe (MP3/WAV)
+- `model`: Whisper model size (base, small, medium, large)
+- `lang`: Comma-separated languages (e.g., "Ukrainian,English")
+- `keywords`: Comma-separated keywords to monitor
+- `confidence_threshold`: Match confidence percentage (0-100)
+
+#### POST `/pull`
+Transcribe audio from remote URL
+
+**Request:**
+```json
+{
+  "file_url": "https://example.com/audio.mp3",
+  "model": "base",
+  "languages": ["Ukrainian"],
+  "keywords": ["important"],
+  "confidence_threshold": 85
+}
+```
+
+#### POST `/reconstruct`
+Improve transcription text using Gemma
+
+**Request:**
+```json
+{
+  "transcription": "raw text from whisper",
+  "template": "formal report format"
+}
+```
+
+### Response Format
+```json
+{
+  "transcriptions": {
+    "Ukrainian": "full transcribed text",
+    "English": "translated text"
+  },
+  "keyword_spots": {
+    "important": [
+      {
+        "word": "important",
+        "confidence": 92,
+        "time_mark": 23.45,
+        "context": "this is important because..."
+      }
+    ]
+  },
+  "processing_time": 4.56
+}
+```
+
+## Web Interface
+
+Access the simple web UI at `http://localhost:8080` when enabled (set `UI_ENABLED=true`):
+
+![Web Interface Preview](./screenshots/ui-preview.png)
+
+## Deployment
+
+### Production Setup
+1. Use Gunicorn with the provided configuration:
    ```bash
-   curl -X POST http://localhost:8080/transcribe \
-        -F "file=@example.mp3" \
-        -F "lang=Ukrainian" \
-        -F "keywords=hello,world" \
-        -F "confidence_threshold=90"
+   gunicorn --config gunicorn_config.py app:app
    ```
 
----
+2. Recommended environment variables for production:
+   ```ini
+   FLASK_ENV=production
+   API_KEY_ENABLED=true
+   MAX_CONTENT_LENGTH=52428800
+   ```
 
-## **Contributing**
+### Docker
+```sh
+docker pull stremovskyy/transcription-app:latest
+docker run -d --gpus all -p 8080:8080 --name transcriptor  --restart always stremovskyy/transcription-app
+```
+
+## Contributing
+
 Contributions are welcome! Please follow these steps:
-1. Fork the repository.
-2. Create a new branch (`git checkout -b feature-name`).
-3. Commit your changes (`git commit -m "Add feature"`).
-4. Push to the branch (`git push origin feature-name`).
-5. Create a pull request.
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/your-feature`)
+3. Commit your changes
+4. Push to the branch
+5. Open a Pull Request
 
----
+## License
 
-## **License**
-This project has no license and is open-source.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
----
+## Acknowledgments
 
-## **Acknowledgments**
-- [Whisper by OpenAI](https://github.com/openai/whisper)
-- [Flask Framework](https://flask.palletsprojects.com/)
-- [RapidFuzz Library](https://github.com/maxbachmann/RapidFuzz)
+- OpenAI Whisper models
+- Google Gemma models
+- Flask community for excellent web framework
