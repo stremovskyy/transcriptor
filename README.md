@@ -37,7 +37,7 @@ A production-ready Flask application for audio transcription using OpenAI's Whis
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/audio-transcription-service.git
+git clone https://github.com/stremovskyy/transcriptor.git
 cd audio-transcription-service
 
 # Create virtual environment
