@@ -6,14 +6,16 @@ import logging
 import traceback
 import time
 from flask import current_app
+
+from app.keywords import KeyWordsService
 from app.models import ModelCache, GemmaModelCache
-from app.services import TranscriptionService, TextReconstructionService
 from app.middleware import api_key_required, check_ui_enabled
+from app.text_reconstruction import TextReconstructionService
+from app.transcription import TranscriptionService
 from app.utils import allowed_file
 from urllib.parse import urlparse
 import uuid
 import requests
-
 
 logger = logging.getLogger(__name__)
 routes = Blueprint('routes', __name__)
@@ -82,6 +84,7 @@ def transcribe():
         model_type = request.form.get('model', 'base')
         keywords = request.form.get('keywords', '').split(',') if request.form.get('keywords') else []
         confidence_threshold = int(request.form.get('confidence_threshold', 80))
+        pre_process_file = request.form.get('pre_process_file', 'false').lower() == 'true'
 
         if model_type not in model_cache._models:
             model_cache.load_model(model_type)
@@ -90,7 +93,8 @@ def transcribe():
                     f"languages={languages}, "
                     f"model={model_type}, "
                     f"keywords={keywords}, "
-                    f"confidence_threshold={confidence_threshold}")
+                    f"confidence_threshold={confidence_threshold}, "
+                    f"pre_process_file={pre_process_file}")
 
         start_time = time.time()
         model = model_cache.get_model(model_type)
@@ -100,19 +104,34 @@ def transcribe():
             raise RuntimeError(f"Failed to load {model_type} model")
 
         logger.info("Starting audio transcription")
-        result = TranscriptionService.transcribe_audio(
+
+        transcription_result = TranscriptionService.transcribe_audio(
             file_path,
             model,
             languages,
             keywords,
-            confidence_threshold
+            pre_process_file
         )
 
-        end_time = time.time()
-        result['processing_time'] = round(end_time - start_time, 2)
+        if transcription_result.get('error') is not None:
+            return jsonify(transcription_result), 400
 
-        logger.info(f"Transcription completed in {result['processing_time']} seconds")
-        return jsonify(result)
+        keyword_spots = {}
+        if keywords:
+            keyword_spots = KeyWordsService.spot_keywords(
+                transcription_results=transcription_result["segments"],
+                keywords=keywords,
+                languages=languages,
+                confidence_threshold=confidence_threshold
+            )
+
+        transcription_result["keyword_spots"] = keyword_spots
+
+        end_time = time.time()
+        transcription_result['processing_time'] = round(end_time - start_time, 2)
+
+        logger.info(f"Transcription completed in {transcription_result['processing_time']} seconds")
+        return jsonify(transcription_result)
 
     except RequestEntityTooLarge:
         logger.error("File too large")
@@ -161,6 +180,7 @@ def transcribe_json():
             keywords = keywords.split(',') if keywords else []
 
         confidence_threshold = int(data.get('confidence_threshold', 80))
+        pre_process_file = data.get('pre_process_file', False)
 
         # Download file from URL
         logger.info(f"Attempting to download file from: {file_url}")
@@ -211,7 +231,10 @@ def transcribe_json():
                     f"languages={languages}, "
                     f"model={model_type}, "
                     f"keywords={keywords}, "
-                    f"confidence_threshold={confidence_threshold}")
+                    f"confidence_threshold={confidence_threshold}, "
+                    f"file_url={file_url}, "
+                    f"pre_process_file={pre_process_file}"
+                    )
 
         start_time = time.time()
         model = model_cache.get_model(model_type)
@@ -221,20 +244,35 @@ def transcribe_json():
             raise RuntimeError(f"Failed to load {model_type} model")
 
         logger.info("Starting audio transcription")
-        result = TranscriptionService.transcribe_audio(
+
+        transcription_result = TranscriptionService.transcribe_audio(
             file_path,
             model,
             languages,
             keywords,
-            confidence_threshold
+            pre_process_file
         )
 
-        end_time = time.time()
-        result['processing_time'] = round(end_time - start_time, 2)
-        result['original_url'] = file_url
+        if transcription_result.get('error') is not None:
+            return jsonify(transcription_result), 400
 
-        logger.info(f"Transcription completed in {result['processing_time']} seconds")
-        return jsonify(result)
+        keyword_spots = {}
+        if keywords:
+            keyword_spots = KeyWordsService.spot_keywords(
+                transcription_results=transcription_result["segments"],
+                keywords=keywords,
+                languages=languages,
+                confidence_threshold=confidence_threshold
+            )
+
+        transcription_result["keyword_spots"] = keyword_spots
+
+        end_time = time.time()
+        transcription_result['processing_time'] = round(end_time - start_time, 2)
+        transcription_result['original_url'] = file_url
+
+        logger.info(f"Transcription completed in {transcription_result['processing_time']} seconds")
+        return jsonify(transcription_result)
 
     except requests.exceptions.RequestException as e:
         logger.error(f"Error downloading file: {e}")
@@ -333,6 +371,7 @@ def reconstruct_text():
     except Exception as e:
         logger.exception(f"Text reconstruction error: {e}")
         return jsonify({"error": str(e), "details": traceback.format_exc()}), 500
+
 
 def register_routes(app):
     app.register_blueprint(routes)

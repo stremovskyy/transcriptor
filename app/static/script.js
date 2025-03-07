@@ -58,7 +58,10 @@ const translations = {
         'original-url': 'Оригінальний URL:',
         'keyword-found': 'Ключове слово "{keyword}": Знайдено',
         'original-text': 'Оригінальний текст:',
-        'template': 'Шаблон:'
+        'template': 'Шаблон:',
+        'pre_process_file' : 'Препроцессінг файлу',
+        'pre_process_file-false' : 'Не обробляти файл',
+        'pre_process_file-true' : 'Обробити файл',
     },
     'en': {
         'page-title': 'Audio Transcription',
@@ -118,7 +121,10 @@ const translations = {
         'original-url': 'Original URL:',
         'keyword-found': 'Keyword "{keyword}": Found',
         'original-text': 'Original Text:',
-        'template': 'Template:'
+        'template': 'Template:',
+        'pre_process_file' : 'Pre-process file',
+        'pre_process_file-false' : 'Do not pre-process file',
+        'pre_process_file-true' : 'Pre-process file',
     }
 };
 
@@ -261,6 +267,7 @@ document.getElementById('upload-form').addEventListener('submit', async function
     const langField = document.querySelector('input[name="lang"]');
     const keywordsField = document.querySelector('input[name="keywords"]');
     const confidenceThresholdField = document.querySelector('input[name="confidence_threshold"]');
+    const preProcessFileField = document.querySelector('select#pre_process_file');
     const modelField = document.querySelector('select[name="model"]');
     const button = event.target.querySelector('button');
     const loading = document.getElementById('loading');
@@ -270,6 +277,7 @@ document.getElementById('upload-form').addEventListener('submit', async function
     formData.append('keywords', keywordsField.value);
     formData.append('confidence_threshold', confidenceThresholdField.value);
     formData.append('model', modelField.value);
+    formData.append('pre_process_file', preProcessFileField.value);
 
     button.disabled = true;
     loading.style.display = 'block';
@@ -305,6 +313,7 @@ document.getElementById('url-form').addEventListener('submit', async function(ev
     const langField = document.getElementById('url_lang');
     const keywordsField = document.getElementById('url_keywords');
     const confidenceThresholdField = document.getElementById('url_confidence_threshold');
+    const preProcessFileField = document.querySelector('select#url_pre_process_file');
     const modelField = document.getElementById('url_model');
     const button = event.target.querySelector('button');
     const loading = document.getElementById('loading');
@@ -314,7 +323,8 @@ document.getElementById('url-form').addEventListener('submit', async function(ev
         languages: langField.value.split(',').map(lang => lang.trim()),
         keywords: keywordsField.value ? keywordsField.value.split(',').map(kw => kw.trim()) : [],
         confidence_threshold: parseInt(confidenceThresholdField.value),
-        model: modelField.value
+        model: modelField.value,
+        pre_process_file: preProcessFileField.value
     };
 
     button.disabled = true;
@@ -399,7 +409,7 @@ function displayResult(result, processingTime) {
 
     for (const [lang, transcription] of Object.entries(result.transcriptions)) {
         resultHtml += `<div><strong>${lang}:</strong>
-        <pre id="transcription-${lang}">${transcription}</pre>
+        <div id="transcription-${lang}" class="result-content">${transcription}</div>
         <div class="action-buttons">
             <button class="copy-button" data-text="${transcription.replace(/"/g, '&quot;')}">${getLocalizedText('copy-button')}</button>
             <button class="reconstruct-button" data-text="${transcription.replace(/"/g, '&quot;')}">${getLocalizedText('reconstruct-button-text')}</button>
@@ -463,9 +473,9 @@ function displayResult(result, processingTime) {
 function displayReconstructionResult(result) {
     let resultHtml = `<div>${getLocalizedText('processing-time', { time: result.processing_time.toFixed(2) })}</div><br>`;
 
-    resultHtml += `<div><strong>${getLocalizedText('original-text')}</strong><pre>${result.original_transcription}</pre></div><br>`;
-    resultHtml += `<div><strong>${getLocalizedText('template')}</strong><pre>${result.template}</pre></div><br>`;
-    resultHtml += `<div><strong>${currentLang === 'uk' ? 'Реконструйований текст' : 'Reconstructed Text'}:</strong><pre id="reconstructed-text">${result.reconstructed_text}</pre>
+    resultHtml += `<div><strong>${getLocalizedText('original-text')}</strong><div class="result-content">${result.original_transcription}</div></div><br>`;
+    resultHtml += `<div><strong>${getLocalizedText('template')}</strong><div class="result-content">${result.template}</div></div><br>`;
+    resultHtml += `<div><strong>${currentLang === 'uk' ? 'Реконструйований текст' : 'Reconstructed Text'}:</strong><div id="reconstructed-text" class="result-content">${result.reconstructed_text}</div>
         <div class="action-buttons">
             <button class="copy-button" data-text="${result.reconstructed_text.replace(/"/g, '&quot;')}">${getLocalizedText('copy-button')}</button>
         </div>

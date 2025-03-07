@@ -12,3 +12,4 @@ torch
 mpmath
 sympy
 urllib3
+librosa

@@ -242,12 +242,14 @@ textarea {
   border-radius: var(--border-radius);
   padding: 1rem;
   margin-top: 1rem;
-  white-space: pre-wrap;
+  white-space: pre-line;
   word-wrap: break-word;
+  word-break: break-word;
   font-family: monospace;
   min-height: 200px;
   max-height: 500px;
   overflow-y: auto;
+  line-height: 1.5;
 }
 
 .loading {
