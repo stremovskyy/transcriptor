@@ -2,7 +2,7 @@ import os
 import logging
 from dotenv import load_dotenv
 from app.managers import ConfigManager
-from typing import Dict, Any
+from typing import Any
 
 logger = logging.getLogger(__name__)
 

@@ -6,7 +6,6 @@ from flask import current_app
 from logging import getLogger
 
 from app.config import AudioConfig, TranscriptionConfig
-from app.errors import silence_error
 from app.preprocessing import PreprocessingService
 
 logger = getLogger(__name__)
@@ -37,24 +36,19 @@ class TranscriptionService:
             Dictionary containing transcriptions and detailed segment information
         """
         try:
-            # Get processed audio file and sample rate
             audio_file_path, sample_rate = TranscriptionService._prepare_audio(file_path, pre_process_file)
 
-            # Load and validate audio
             audio = whisper.load_audio(audio_file_path)
             TranscriptionService._validate_audio(audio, file_path)
 
             audio_duration = len(audio) / sample_rate
             logger.info(f"Audio length: {audio_duration:.2f} seconds")
 
-            # Create focus prompt with keywords if enabled
             focus_prompt = TranscriptionService._build_focus_prompt(keywords)
 
-            # Split audio into overlapping segments
             segments = TranscriptionService._create_segments(audio, sample_rate)
             logger.info(f"Split audio into {len(segments)} segments for processing")
 
-            # Process all segments for all languages
             all_results = TranscriptionService._process_segments(
                 segments,
                 model,
@@ -66,7 +60,6 @@ class TranscriptionService:
             # Combine segments into final transcriptions
             transcriptions = TranscriptionService._combine_transcriptions(all_results, languages)
 
-            # Clean up temporary files
             if pre_process_file or current_app.config.get('AUDIO_ENABLE_PREPROCESSING', False):
                 os.remove(audio_file_path)
 
@@ -140,32 +133,20 @@ class TranscriptionService:
             sample_rate: int
     ) -> Dict[str, List[Dict[str, Any]]]:
         """Process all segments for all requested languages."""
-        # Initialize results dictionary
         all_results = {lang: [] for lang in languages}
-
-        if torch.cuda.is_available():
-            device = torch.device("cuda")
-        elif torch.backends.mps.is_available():
-            device = torch.device("mps")
-        else:
-            device = torch.device("cpu")
-
 
         use_fp16 = torch.cuda.is_available()
         logger.info(f"Using fp16: {use_fp16}")
 
-        # Get model name for logging
         model_name = getattr(model, 'name', str(type(model)))
         logger.info(f"Using model: {model_name}")
 
-        # Process each segment
         for i, (start_sample, segment) in enumerate(segments):
             logger.info(f"Processing segment {i + 1}/{len(segments)}")
             start_time = start_sample / sample_rate
 
             # Process for each language
             for lang_idx, language in enumerate(languages):
-                # Create transcription options
                 options = {
                     "language": language,
                     "temperature": 0.5,
@@ -176,7 +157,6 @@ class TranscriptionService:
                     "initial_prompt": focus_prompt
                 }
 
-                # Transcribe segment
                 result = model.transcribe(segment, **options)
 
                 # Create segment result with timing info
@@ -203,7 +183,6 @@ class TranscriptionService:
             "confidence": result.get("avg_logprob", 0)
         }
 
-        # Extract word-level timestamps if available
         if "words" in result and result["words"]:
             segment_result["words"] = [
                 {
@@ -226,9 +205,7 @@ class TranscriptionService:
         transcriptions = {}
 
         for lang in languages:
-            # Join all segments with appropriate spacing
             full_text = " ".join([segment["text"] for segment in all_results[lang]])
-            # Clean up any double spaces
             full_text = " ".join(full_text.split())
             transcriptions[lang] = full_text
 

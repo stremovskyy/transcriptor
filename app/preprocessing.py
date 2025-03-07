@@ -37,19 +37,15 @@ class PreprocessingService:
         try:
             logger.info(f"Starting audio processing: {file_path}")
 
-            # Load audio (convert to mono and resample to the target sample rate)
             audio, sr = PreprocessingService._load_audio(file_path)
 
-            # Apply the processing pipeline
             audio = PreprocessingService._apply_processing_pipeline(audio)
 
-            # Optionally: amplitude control to avoid clipping
             max_val = np.max(np.abs(audio))
             if max_val > 1.0:
                 logger.info(f"Audio amplitude is too high (max {max_val:.2f}); normalizing.")
                 audio = audio / max_val
 
-            # Construct the output file path. Using WAV for compatibility.
             output_path = Path(file_path).with_suffix('').as_posix() + '_preprocessed.wav'
             sf.write(output_path, audio, sr)
             logger.info(f"Audio processing completed. File saved at: {output_path}")
@@ -82,12 +78,6 @@ class PreprocessingService:
         Applies a series of processing steps based on the configuration:
         DC offset removal, normalization, pre-emphasis, noise reduction,
         dynamic range compression, and silence trimming.
-
-        Args:
-            audio: The audio signal.
-
-        Returns:
-            np.ndarray: The processed audio signal.
         """
         # Remove DC offset
         if config.get('enable_dc_offset', True):
@@ -142,19 +132,15 @@ class PreprocessingService:
 
         logger.info(f"Noise reduction parameters: frame_length={frame_length}, hop_length={hop_length}, noise_threshold={noise_threshold}")
 
-        # Compute the STFT
         D = librosa.stft(audio, n_fft=frame_length, hop_length=hop_length)
         D_mag = np.abs(D)
 
-        # Estimate the noise floor from the first few frames
         noise_frames = min(10, D_mag.shape[1])
         noise_estimate = np.mean(D_mag[:, :noise_frames], axis=1, keepdims=True)
 
-        # Create a soft mask
         mask = (D_mag > noise_threshold * noise_estimate).astype(float)
         smoothed_mask = ndimage.gaussian_filter(mask, sigma=2)
 
-        # Apply the mask and reconstruct the audio via iSTFT
         D_cleaned = D * smoothed_mask
         audio_clean = librosa.istft(D_cleaned, hop_length=hop_length)
         return audio_clean

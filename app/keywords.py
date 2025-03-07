@@ -10,7 +10,6 @@ logger = getLogger(__name__)
 class KeyWordsService:
     """Service for spotting keywords in transcription results."""
 
-    # Precompile regex for word splitting
     _word_splitter = re.compile(r'\s+')
 
     @staticmethod
@@ -32,22 +31,18 @@ class KeyWordsService:
         Returns:
             Dictionary of keyword matches with timing information
         """
-        # Early return if no keywords provided
         if not keywords:
             logger.info("No keywords provided for spotting")
             return {lang: {} for lang in languages}
 
-        # Convert keywords to lowercase for case-insensitive matching
         normalized_keywords = [keyword.lower() for keyword in keywords]
         logger.info(f"Processing keywords: {keywords}")
 
-        # Initialize result dictionary
         keyword_spots = {
             lang: {keyword: [] for keyword in keywords}
             for lang in languages
         }
 
-        # Process each language
         for language in languages:
             segments = transcription_results.get(language, [])
 
@@ -79,7 +74,6 @@ class KeyWordsService:
         segment_start = segment_data["start"]
         segment_duration = segment_data["end"] - segment_data["start"]
 
-        # Use word timestamps if available for more precise keyword spotting
         if "words" in segment_data and segment_data["words"]:
             KeyWordsService._spot_keywords_with_timestamps(
                 segment_data["words"],
@@ -116,11 +110,9 @@ class KeyWordsService:
                 word = word_info["word"]
                 norm_word = word.lower()
 
-                # First try exact match for efficiency
                 if norm_keyword == norm_word:
                     similarity = 100
                 else:
-                    # Fall back to fuzzy matching if needed
                     similarity = fuzz.ratio(norm_keyword, norm_word)
 
                 if similarity >= confidence_threshold:
@@ -158,7 +150,6 @@ class KeyWordsService:
         """Spot keywords without word-level timestamps."""
         words = KeyWordsService._word_splitter.split(segment_text)
 
-        # Convert words list to string for caching function
         words_str = '|'.join(words)
 
         for i, (orig_keyword, norm_keyword) in enumerate(zip(original_keywords, normalized_keywords)):
@@ -171,9 +162,7 @@ class KeyWordsService:
 
             for word, score, index in matches:
                 if score >= confidence_threshold:
-                    # Calculate time relative to segment
                     relative_time = (index / len(words)) * segment_duration
-                    # Add segment start time for absolute position
                     absolute_time = segment_start + relative_time
 
                     # Get context (words before and after)

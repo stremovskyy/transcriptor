@@ -200,14 +200,12 @@ def transcribe_json():
         response = requests.get(file_url, stream=True, timeout=30)
         response.raise_for_status()  # Raise exception for 4XX/5XX responses
 
-        # Save the downloaded file
         with open(file_path, 'wb') as f:
             for chunk in response.iter_content(chunk_size=8192):
                 f.write(chunk)
 
         logger.info(f"File downloaded and saved to: {file_path}")
 
-        # Check if file exists and is valid
         if not os.path.exists(file_path):
             raise RuntimeError("File was not saved correctly")
 
@@ -217,13 +215,11 @@ def transcribe_json():
         if file_size == 0:
             raise BadRequest("Downloaded file is empty")
 
-        # Check if file extension is allowed
         if not allowed_file(filename, allowed_extensions=current_app.config['ALLOWED_EXTENSIONS']):
             logger.error("File extension not allowed")
             os.remove(file_path)
             raise BadRequest("Invalid file type, only MP3 files are supported")
 
-        # Load the model if not already loaded
         if model_type not in model_cache._models:
             model_cache.load_model(model_type)
 
@@ -303,7 +299,6 @@ def transcribe_json():
 @api_key_required
 def preload_gemma():
     try:
-        # Parse JSON data
         data = request.get_json()
 
         success = gemma_model_cache.load_model(model_id=data.get('model_id', 'google/gemma-2b-it'))
