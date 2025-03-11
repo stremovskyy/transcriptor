@@ -6,6 +6,7 @@ from flask import current_app
 from logging import getLogger
 
 from app.config import AudioConfig, TranscriptionConfig
+from app.exceptions import SilenceError
 from app.preprocessing import PreprocessingService
 
 logger = getLogger(__name__)
@@ -35,42 +36,37 @@ class TranscriptionService:
         Returns:
             Dictionary containing transcriptions and detailed segment information
         """
-        try:
-            audio_file_path, sample_rate = TranscriptionService._prepare_audio(file_path, pre_process_file)
+        audio_file_path, sample_rate = TranscriptionService._prepare_audio(file_path, pre_process_file)
 
-            audio = whisper.load_audio(audio_file_path)
-            TranscriptionService._validate_audio(audio, file_path)
+        audio = whisper.load_audio(audio_file_path)
+        TranscriptionService._validate_audio(audio, file_path)
 
-            audio_duration = len(audio) / sample_rate
-            logger.info(f"Audio length: {audio_duration:.2f} seconds")
+        audio_duration = len(audio) / sample_rate
+        logger.info(f"Audio length: {audio_duration:.2f} seconds")
 
-            focus_prompt = TranscriptionService._build_focus_prompt(keywords)
+        focus_prompt = TranscriptionService._build_focus_prompt(keywords)
 
-            segments = TranscriptionService._create_segments(audio, sample_rate)
-            logger.info(f"Split audio into {len(segments)} segments for processing")
+        segments = TranscriptionService._create_segments(audio, sample_rate)
+        logger.info(f"Split audio into {len(segments)} segments for processing")
 
-            all_results = TranscriptionService._process_segments(
-                segments,
-                model,
-                languages,
-                focus_prompt,
-                sample_rate
-            )
+        all_results = TranscriptionService._process_segments(
+            segments,
+            model,
+            languages,
+            focus_prompt,
+            sample_rate
+        )
 
-            # Combine segments into final transcriptions
-            transcriptions = TranscriptionService._combine_transcriptions(all_results, languages)
+        # Combine segments into final transcriptions
+        transcriptions = TranscriptionService._combine_transcriptions(all_results, languages)
 
-            if pre_process_file or current_app.config.get('AUDIO_ENABLE_PREPROCESSING', False):
-                os.remove(audio_file_path)
+        if pre_process_file or current_app.config.get('AUDIO_ENABLE_PREPROCESSING', False):
+            os.remove(audio_file_path)
 
-            return {
-                "transcriptions": transcriptions,
-                "segments": all_results,
-            }
-
-        except Exception as e:
-            logger.error(f"Transcription error: {e}")
-            raise RuntimeError(f"Transcription failed: {e}")
+        return {
+            "transcriptions": transcriptions,
+            "segments": all_results,
+        }
 
     @staticmethod
     def _prepare_audio(file_path: str, pre_process_file: bool) -> Tuple[str, int]:
@@ -92,7 +88,7 @@ class TranscriptionService:
         if PreprocessingService.detect_silence(audio):
             logger.warning("Audio appears to be silent - transcription may not be meaningful")
             os.remove(file_path)
-            raise ValueError("Silent audio detected")
+            raise SilenceError()
 
     @staticmethod
     def _build_focus_prompt(keywords: List[str]) -> str:

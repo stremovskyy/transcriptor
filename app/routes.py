@@ -7,6 +7,7 @@ import traceback
 import time
 from flask import current_app
 
+from app.exceptions import SilenceError
 from app.keywords import KeyWordsService
 from app.models import ModelCache, GemmaModelCache
 from app.middleware import api_key_required, check_ui_enabled
@@ -133,6 +134,9 @@ def transcribe():
         logger.info(f"Transcription completed in {transcription_result['processing_time']} seconds")
         return jsonify(transcription_result)
 
+    except SilenceError as e:
+        logger.error(f"Silence error: {e}")
+        return jsonify({"error": e.message, "code": e.code}), 400
     except RequestEntityTooLarge:
         logger.error("File too large")
         return jsonify({"error": "File too large. Max 50MB."}), 413
@@ -269,6 +273,10 @@ def transcribe_json():
 
         logger.info(f"Transcription completed in {transcription_result['processing_time']} seconds")
         return jsonify(transcription_result)
+
+    except SilenceError as e:
+        logger.error(f"Silence error: {e}")
+        return jsonify({"error": e.message, "code": e.code}), 400
 
     except requests.exceptions.RequestException as e:
         logger.error(f"Error downloading file: {e}")
