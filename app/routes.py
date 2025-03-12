@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, render_template
+from flask import Blueprint, request, jsonify, render_template, Response
 from werkzeug.utils import secure_filename
 from werkzeug.exceptions import BadRequest, RequestEntityTooLarge
 import os
@@ -13,6 +13,7 @@ from app.models import ModelCache, GemmaModelCache
 from app.middleware import api_key_required, check_ui_enabled
 from app.text_reconstruction import TextReconstructionService
 from app.transcription import TranscriptionService
+from app.tts_service import TTSService
 from app.utils import allowed_file
 from urllib.parse import urlparse
 import uuid
@@ -23,6 +24,7 @@ routes = Blueprint('routes', __name__)
 
 model_cache = ModelCache()
 gemma_model_cache = GemmaModelCache()
+tts_service = TTSService()
 
 
 @routes.route('/')
@@ -46,6 +48,101 @@ def preload_model():
         return jsonify({"status": "Model preloaded successfully"}), 200
     except Exception as e:
         logger.error(f"Model preload error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@routes.route('/tts', methods=['POST'])
+@api_key_required  # Optional: Remove if you do not require API key protection.
+def tts():
+    try:
+        logger.info("TTS request received")
+
+        data = request.get_json()
+        if not data or 'text' not in data:
+            logger.warning("No text provided in TTS request")
+            return jsonify({"error": "No text provided"}), 400
+
+        text = data['text']
+        lang = data.get('lang', 'uk')
+        download = data.get('download', False)
+        voice_speed = float(data.get('voice_speed', 1.0))
+        voice_pitch = float(data.get('voice_pitch', 1.0))
+
+        # Validate parameters
+        if not text.strip():
+            return jsonify({"error": "Empty text provided"}), 400
+
+        # Limit to reasonable values
+        voice_speed = max(0.7, min(1.5, voice_speed))
+        voice_pitch = max(0.7, min(1.5, voice_pitch))
+
+        # Check if language is supported
+        available_languages = tts_service.get_available_languages()
+        if lang not in available_languages:
+            logger.warning(f"Language '{lang}' not supported. Available languages: {available_languages}")
+            return jsonify(
+                {"error": f"Language '{lang}' not supported. Available languages: {available_languages}"}), 400
+
+        logger.info(
+            f"Processing TTS request. Text length: {len(text)}, Language: {lang}, "
+            f"Download: {download}, Voice speed: {voice_speed}, Voice pitch: {voice_pitch}")
+
+        # Generate a unique filename
+        temp_filename = f'speech_{uuid.uuid4()}.wav'
+        output_path = os.path.join(current_app.config['UPLOAD_FOLDER'], temp_filename)
+
+        try:
+            # Ensure the upload folder exists
+            os.makedirs(current_app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+            # Generate the WAV file
+            tts_service.generate_wav_file(
+                text,
+                output_path,
+                lang=lang,
+                voice_speed=voice_speed,
+                voice_pitch=voice_pitch
+            )
+
+            # Verify the file exists and has content
+            if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
+                logger.error(f"Generated file is missing or empty: {output_path}")
+                return jsonify({"error": "Failed to generate audio file"}), 500
+
+            # Return file as a response (download or stream)
+            with open(output_path, 'rb') as f:
+                response_data = f.read()
+
+                # Make sure we actually have data
+                if not response_data:
+                    logger.error("No data read from generated audio file")
+                    return jsonify({"error": "Empty audio file generated"}), 500
+
+                response = Response(response_data, mimetype='audio/wav')
+
+                if download:
+                    # If download is requested, set Content-Disposition header
+                    filename = data.get('filename', f'speech_{lang}.wav')
+                    response.headers['Content-Disposition'] = f'attachment; filename="{secure_filename(filename)}"'
+                else:
+                    # For streaming, set appropriate headers
+                    response.headers['Accept-Ranges'] = 'bytes'
+                    response.headers['Content-Length'] = str(len(response_data))
+
+            # Clean up the temporary file
+            try:
+                os.remove(output_path)
+            except Exception as e:
+                logger.warning(f"Failed to remove temporary file {output_path}: {str(e)}")
+
+            return response
+
+        except Exception as e:
+            logger.error(f"Error generating WAV file: {str(e)}", exc_info=True)
+            return jsonify({"error": f"Error generating WAV file: {str(e)}"}), 500
+
+    except Exception as e:
+        logger.error(f"Error in TTS endpoint: {str(e)}", exc_info=True)
         return jsonify({"error": str(e)}), 500
 
 

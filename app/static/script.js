@@ -59,9 +59,31 @@ const translations = {
         'keyword-found': 'Ключове слово "{keyword}": Знайдено',
         'original-text': 'Оригінальний текст:',
         'template': 'Шаблон:',
-        'pre_process_file' : 'Препроцессінг файлу',
-        'pre_process_file-false' : 'Не обробляти файл',
-        'pre_process_file-true' : 'Обробити файл',
+        'pre_process_file': 'Препроцессінг файлу',
+        'pre_process_file-false': 'Не обробляти файл',
+        'pre_process_file-true': 'Обробити файл',
+        'tts-lang': 'Мова (необов\'язково):',
+        'tts-lang-default': 'За замовчуванням',
+        'tts-lang-uk': 'Українська',
+        'tts-lang-en': 'Англійська',
+        'download-with-filename': 'Завантажити з власною назвою',
+        'download-started': 'Завантаження розпочато!',
+        'tts-download-option': 'Завантажити аудіо (замість відтворення)',
+        'tts-filename': 'Назва файлу:',
+        'tts-filename-placeholder': 'Назва файлу (без .mp3)',
+        'generating-download': 'Генерація та підготовка до завантаження...',
+        'generating-audio': 'Генерація аудіо...',
+        'download-audio': 'Завантажити аудіо',
+        'enter-filename': 'Введіть назву файлу (без розширення .mp3):',
+        'download-success': 'Файл {filename} успішно завантажено!',
+        'download-failed': 'Помилка завантаження:',
+        'tts-result': 'Згенерований аудіо для тексту:',
+        'tts-text-processed': 'Оброблений текст',
+        'no-text-provided': 'Будь ласка, введіть текст для перетворення в аудіо',
+        'tts-text': 'Текст для вимови:',
+        'tts-placeholder': 'ВВедіть текст тут...',
+        'tab-tts': 'Текст в мову',
+        'tts-button': 'Відтворити',
     },
     'en': {
         'page-title': 'Audio Transcription',
@@ -122,9 +144,31 @@ const translations = {
         'keyword-found': 'Keyword "{keyword}": Found',
         'original-text': 'Original Text:',
         'template': 'Template:',
-        'pre_process_file' : 'Pre-process file',
-        'pre_process_file-false' : 'Do not pre-process file',
-        'pre_process_file-true' : 'Pre-process file',
+        'pre_process_file': 'Pre-process file',
+        'pre_process_file-false': 'Do not pre-process file',
+        'pre_process_file-true': 'Pre-process file',
+        'tts-lang': 'Language (optional):',
+        'tts-lang-default': 'Default',
+        'tts-lang-uk': 'Ukrainian',
+        'tts-lang-en': 'English',
+        'download-with-filename': 'Download with Custom Filename',
+        'download-started': 'Download started!',
+        'tts-download-option': 'Download audio (instead of playing)',
+        'tts-filename': 'Filename:',
+        'tts-filename-placeholder': 'Filename (without .mp3)',
+        'generating-download': 'Generating and preparing download...',
+        'generating-audio': 'Generating audio...',
+        'download-audio': 'Download Audio',
+        'enter-filename': 'Enter filename (without .mp3 extension):',
+        'download-success': 'File {filename} successfully downloaded!',
+        'download-failed': 'Download failed:',
+        'tts-result': 'Generated audio for text:',
+        'tts-text-processed': 'Processed text',
+        'no-text-provided': 'Please enter text to convert to audio',
+        'tts-text': 'Text for speech:',
+        'tts-placeholder': 'Enter text here...',
+        'tab-tts': 'Text to Speech',
+        'tts-button': 'Synthesize',
     }
 };
 
@@ -171,14 +215,14 @@ function setLanguage(lang) {
 
 // Language switcher functionality
 document.querySelectorAll('.lang-btn').forEach(button => {
-    button.addEventListener('click', function() {
+    button.addEventListener('click', function () {
         const lang = this.getAttribute('data-lang');
         setLanguage(lang);
     });
 });
 
 // API Key functionality
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const apiKeyField = document.getElementById('api-key');
     const saveButton = document.getElementById('save-api-key');
     const statusSpan = document.getElementById('api-key-status');
@@ -190,7 +234,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Save API key
-    saveButton.addEventListener('click', function() {
+    saveButton.addEventListener('click', function () {
         const apiKey = apiKeyField.value.trim();
         if (apiKey) {
             localStorage.setItem('apiKey', apiKey);
@@ -231,7 +275,7 @@ function createHeaders(contentType = null) {
 
 // Tab functionality
 document.querySelectorAll('.tab').forEach(tab => {
-    tab.addEventListener('click', function() {
+    tab.addEventListener('click', function () {
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
 
@@ -243,9 +287,12 @@ document.querySelectorAll('.tab').forEach(tab => {
             document.getElementById('url-form').classList.add('active');
         } else if (tabId === 'reconstruct') {
             document.getElementById('reconstruct-form').classList.add('active');
+        } else if (tabId === 'tts-stream') {
+            document.getElementById('tts-form').classList.add('active');
         }
     });
 });
+
 
 // Utility function to get localized text
 function getLocalizedText(key, replacements = {}) {
@@ -260,7 +307,7 @@ function getLocalizedText(key, replacements = {}) {
 }
 
 // File upload form handler
-document.getElementById('upload-form').addEventListener('submit', async function(event) {
+document.getElementById('upload-form').addEventListener('submit', async function (event) {
     event.preventDefault();
     const formData = new FormData();
     const fileField = document.querySelector('input[type="file"]');
@@ -307,7 +354,7 @@ document.getElementById('upload-form').addEventListener('submit', async function
 });
 
 // URL form handler
-document.getElementById('url-form').addEventListener('submit', async function(event) {
+document.getElementById('url-form').addEventListener('submit', async function (event) {
     event.preventDefault();
     const urlField = document.getElementById('file_url');
     const langField = document.getElementById('url_lang');
@@ -355,7 +402,7 @@ document.getElementById('url-form').addEventListener('submit', async function(ev
 });
 
 // Reconstruction form handler
-document.getElementById('reconstruct-form').addEventListener('submit', async function(event) {
+document.getElementById('reconstruct-form').addEventListener('submit', async function (event) {
     event.preventDefault();
     const textField = document.getElementById('reconstruction_text');
     const templateField = document.getElementById('reconstruction_template');
@@ -400,7 +447,7 @@ document.getElementById('reconstruct-form').addEventListener('submit', async fun
 
 // Function to display transcription results
 function displayResult(result, processingTime) {
-    let resultHtml = `<div>${getLocalizedText('processing-time', { time: processingTime.toFixed(2) })}</div>`;
+    let resultHtml = `<div>${getLocalizedText('processing-time', {time: processingTime.toFixed(2)})}</div>`;
 
     // If URL was used, show it
     if (result.original_url) {
@@ -423,7 +470,7 @@ function displayResult(result, processingTime) {
                     continue;
                 }
 
-                keywordResults += `<div><strong>${getLocalizedText('keyword-found', { keyword: keyword })}</strong></div>`;
+                keywordResults += `<div><strong>${getLocalizedText('keyword-found', {keyword: keyword})}</strong></div>`;
             }
             if (keywordResults) {
                 resultHtml += `<div>${keywordResults}</div><br>`;
@@ -434,7 +481,7 @@ function displayResult(result, processingTime) {
 
     // Add event listeners for copy buttons
     document.querySelectorAll('.copy-button').forEach(button => {
-        button.addEventListener('click', function() {
+        button.addEventListener('click', function () {
             const text = this.getAttribute('data-text');
             navigator.clipboard.writeText(text)
                 .then(() => {
@@ -452,26 +499,218 @@ function displayResult(result, processingTime) {
 
     // Add event listeners for reconstruct buttons
     document.querySelectorAll('.reconstruct-button').forEach(button => {
-        button.addEventListener('click', function() {
+        button.addEventListener('click', function () {
             const text = this.getAttribute('data-text');
 
-            // Switch to reconstruct tab
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            this.classList.add('active');
 
-            document.querySelector('.tab[data-tab="reconstruct"]').classList.add('active');
-            document.getElementById('reconstruct-form').classList.add('active');
-
-            // Fill in the reconstruction form with the text
-            document.getElementById('reconstruction_text').value = text;
-            document.getElementById('reconstruction_text').focus();
+            const tabId = this.getAttribute('data-tab');
+            if (tabId === 'file-upload') {
+                document.getElementById('upload-form').classList.add('active');
+            } else if (tabId === 'url-upload') {
+                document.getElementById('url-form').classList.add('active');
+            } else if (tabId === 'reconstruct') {
+                document.getElementById('reconstruct-form').classList.add('active');
+            } else if (tabId === 'tts-stream') {
+                document.getElementById('tts-form').classList.add('active');
+            }
         });
     });
 }
 
+// Show/hide filename field based on download checkbox
+document.getElementById('tts-download').addEventListener('change', function () {
+    const filenameContainer = document.querySelector('.filename-container');
+    if (this.checked) {
+        filenameContainer.style.display = 'block';
+        document.querySelector('[data-lang-key="tts-button"]').textContent =
+            currentLang === 'uk' ? 'Згенерувати та Завантажити' : 'Generate and Download';
+    } else {
+        filenameContainer.style.display = 'none';
+        document.querySelector('[data-lang-key="tts-button"]').textContent =
+            currentLang === 'uk' ? 'Відтворити TTS' : 'Play TTS';
+    }
+});
+
+// TTS form handler
+document.getElementById('tts-form').addEventListener('submit', async function (event) {
+    event.preventDefault();
+
+    const textField = document.getElementById('tts-text');
+    const langField = document.getElementById('tts-lang');
+    const downloadCheckbox = document.getElementById('tts-download');
+    const filenameField = document.getElementById('tts-filename');
+
+    const text = textField.value.trim();
+    const lang = langField.value;
+    const downloadMode = downloadCheckbox.checked;
+    const filename = filenameField.value.trim() || 'speech';
+
+    const button = event.target.querySelector('button');
+    const loading = document.getElementById('loading');
+
+    if (!text) {
+        document.getElementById('result').textContent = getLocalizedText('no-text-provided');
+        return;
+    }
+
+    button.disabled = true;
+    loading.style.display = 'block';
+    loading.textContent = getLocalizedText(downloadMode ? 'generating-download' : 'generating-audio');
+    document.getElementById('result').textContent = '';
+
+    try {
+        // Prepare request data
+        const requestData = {
+            text: text,
+            download: downloadMode,
+            filename: `${filename}.mp3`
+        };
+
+        // Add language if specified
+        if (lang) {
+            requestData.lang = lang;
+        }
+
+        if (downloadMode) {
+            // DOWNLOAD MODE
+            // Create download link
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            document.body.appendChild(a);
+
+            // Fetch the file
+            const response = await fetch('/tts', {
+                method: 'POST',
+                headers: createHeaders('application/json'),
+                body: JSON.stringify(requestData)
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+
+            // Get blob from response
+            const blob = await response.blob();
+
+            // Create download URL and trigger download
+            const url = window.URL.createObjectURL(blob);
+            a.href = url;
+            a.download = requestData.filename;
+            a.click();
+
+            // Clean up
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+
+            // Show success message
+            document.getElementById('result').innerHTML = `
+                <div class="success-message">
+                    ${getLocalizedText('download-success', {filename: requestData.filename})}
+                </div>
+                <div class="result-content">
+                    <strong>${getLocalizedText('tts-text-processed')}:</strong>
+                    <p>${text}</p>
+                </div>
+            `;
+        } else {
+            // STREAMING MODE
+            // Get the audio element
+            const audio = document.getElementById('tts-audio');
+
+            // Clear previous audio
+            audio.pause();
+            audio.src = '';
+
+            // Create a direct streaming source for the audio
+            const response = await fetch('/tts', {
+                method: 'POST',
+                headers: createHeaders('application/json'),
+                body: JSON.stringify(requestData)
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+
+            // Create a blob URL directly from the response
+            const audioBlob = await response.blob();
+            const audioUrl = URL.createObjectURL(audioBlob);
+
+            // Set the audio source and show controls
+            audio.src = audioUrl;
+            audio.style.display = 'block';
+
+            // Add result message with download option
+            document.getElementById('result').innerHTML = `
+                <div><strong>${getLocalizedText('tts-result')}</strong></div>
+                <div class="result-content">${text}</div>
+                <div class="action-buttons">
+                    <button id="download-audio" class="btn-primary">${getLocalizedText('download-audio')}</button>
+                </div>
+            `;
+
+            // Add event listener for download button
+            document.getElementById('download-audio').addEventListener('click', function () {
+                const downloadFilename = prompt(getLocalizedText('enter-filename'), 'speech');
+                if (downloadFilename) {
+                    // Create a modified copy of the request data with download flag
+                    const downloadRequestData = {
+                        ...requestData,
+                        download: true,
+                        filename: `${downloadFilename}.mp3`
+                    };
+
+                    // Create a temporary anchor to trigger download
+                    fetch('/tts', {
+                        method: 'POST',
+                        headers: createHeaders('application/json'),
+                        body: JSON.stringify(downloadRequestData)
+                    })
+                        .then(response => {
+                            if (!response.ok) throw new Error(response.statusText);
+                            return response.blob();
+                        })
+                        .then(blob => {
+                            const url = window.URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.style.display = 'none';
+                            a.href = url;
+                            a.download = downloadRequestData.filename;
+                            document.body.appendChild(a);
+                            a.click();
+                            window.URL.revokeObjectURL(url);
+                            document.body.removeChild(a);
+
+                            // Show success message
+                            const successElem = document.createElement('div');
+                            successElem.className = 'success-message';
+                            successElem.textContent = getLocalizedText('download-success', {filename: downloadRequestData.filename});
+                            document.getElementById('result').appendChild(successElem);
+
+                            setTimeout(() => {
+                                successElem.remove();
+                            }, 3000);
+                        })
+                        .catch(error => {
+                            console.error("Download failed:", error);
+                            alert(getLocalizedText('download-failed') + ' ' + error.message);
+                        });
+                }
+            });
+        }
+    } catch (error) {
+        document.getElementById('result').textContent = `Error: ${error.message}`;
+    } finally {
+        button.disabled = false;
+        loading.style.display = 'none';
+    }
+});
+
+
 // Function to display reconstruction results
 function displayReconstructionResult(result) {
-    let resultHtml = `<div>${getLocalizedText('processing-time', { time: result.processing_time.toFixed(2) })}</div><br>`;
+    let resultHtml = `<div>${getLocalizedText('processing-time', {time: result.processing_time.toFixed(2)})}</div><br>`;
 
     resultHtml += `<div><strong>${getLocalizedText('original-text')}</strong><div class="result-content">${result.original_transcription}</div></div><br>`;
     resultHtml += `<div><strong>${getLocalizedText('template')}</strong><div class="result-content">${result.template}</div></div><br>`;
@@ -485,7 +724,7 @@ function displayReconstructionResult(result) {
 
     // Add event listeners for copy buttons
     document.querySelectorAll('.copy-button').forEach(button => {
-        button.addEventListener('click', function() {
+        button.addEventListener('click', function () {
             const text = this.getAttribute('data-text');
             navigator.clipboard.writeText(text)
                 .then(() => {

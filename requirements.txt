@@ -13,3 +13,7 @@ mpmath
 sympy
 urllib3
 librosa
+TTS
+num2words
+transliterate
+requests
