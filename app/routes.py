@@ -10,7 +10,7 @@ from flask import current_app
 from app.exceptions import SilenceError
 from app.keywords import KeyWordsService
 from app.models import ModelCache, GemmaModelCache
-from app.middleware import api_key_required, check_ui_enabled
+from app.middleware import api_key_required, check_ui_enabled, version_header
 from app.text_reconstruction import TextReconstructionService
 from app.transcription import TranscriptionService
 from app.utils import allowed_file
@@ -33,12 +33,14 @@ def index():
 
 
 @routes.route('/health', methods=['GET'])
+@version_header
 def health_check():
     return jsonify({"status": "Healthy"}), 200
 
 
 @routes.route('/preload_model', methods=['POST'])
 @api_key_required
+@version_header
 def preload_model():
     model_type = request.json.get('model', 'base')
     try:
@@ -51,6 +53,7 @@ def preload_model():
 
 @routes.route('/transcribe', methods=['POST'])
 @api_key_required
+@version_header
 def transcribe():
     logger.info(f"Transcription request received")
     try:
@@ -157,6 +160,7 @@ def transcribe():
 
 @routes.route('/pull', methods=['POST'])
 @api_key_required
+@version_header
 def transcribe_json():
     logger.info("JSON transcription request received")
     try:
@@ -305,6 +309,7 @@ def transcribe_json():
 
 @routes.route('/preload_gemma', methods=['POST'])
 @api_key_required
+@version_header
 def preload_gemma():
     try:
         data = request.get_json()
@@ -321,6 +326,7 @@ def preload_gemma():
 
 @routes.route('/reconstruct', methods=['POST'])
 @api_key_required
+@version_header
 def reconstruct_text():
     logger.info("Text reconstruction request received")
     try:

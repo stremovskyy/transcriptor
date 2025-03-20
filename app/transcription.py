@@ -36,17 +36,19 @@ class TranscriptionService:
         Returns:
             Dictionary containing transcriptions and detailed segment information
         """
-        audio_file_path, sample_rate = TranscriptionService._prepare_audio(file_path, pre_process_file)
-
-        audio = whisper.load_audio(audio_file_path)
+        audio = whisper.load_audio(file_path)
         TranscriptionService._validate_audio(audio, file_path)
 
-        audio_duration = len(audio) / sample_rate
+        audio_file_path, sample_rate, processed_audio = TranscriptionService._prepare_audio(
+            file_path, audio, pre_process_file
+        )
+
+        audio_duration = len(processed_audio) / sample_rate
         logger.info(f"Audio length: {audio_duration:.2f} seconds")
 
         focus_prompt = TranscriptionService._build_focus_prompt(keywords)
 
-        segments = TranscriptionService._create_segments(audio, sample_rate)
+        segments = TranscriptionService._create_segments(processed_audio, sample_rate)
         logger.info(f"Split audio into {len(segments)} segments for processing")
 
         all_results = TranscriptionService._process_segments(
@@ -60,7 +62,7 @@ class TranscriptionService:
         # Combine segments into final transcriptions
         transcriptions = TranscriptionService._combine_transcriptions(all_results, languages)
 
-        if pre_process_file or current_app.config.get('AUDIO_ENABLE_PREPROCESSING', False):
+        if audio_file_path != file_path and os.path.exists(audio_file_path):
             os.remove(audio_file_path)
 
         return {
@@ -69,25 +71,31 @@ class TranscriptionService:
         }
 
     @staticmethod
-    def _prepare_audio(file_path: str, pre_process_file: bool) -> Tuple[str, int]:
-        """Prepare audio file for transcription and return its path and sample rate."""
+    def _prepare_audio(file_path: str, audio: Any, pre_process_file: bool) -> Tuple[str, int, Any]:
+        """
+        Prepare audio file for transcription and return its path, sample rate, and processed audio.
+        Only preprocesses if enabled and audio is not silent.
+        """
         sample_rate = AudioConfig().get('sample_rate')
+        processed_audio = audio
 
-        if pre_process_file or current_app.config.get('AUDIO_ENABLE_PREPROCESSING', False):
+        should_preprocess = pre_process_file or current_app.config.get('AUDIO_ENABLE_PREPROCESSING', False)
+
+        if should_preprocess:
             logger.info("Starting audio preprocessing")
             audio_file_path = PreprocessingService.preprocess_audio(file_path)
+            processed_audio = whisper.load_audio(audio_file_path)
         else:
             logger.info("Audio preprocessing is disabled")
             audio_file_path = file_path
 
-        return audio_file_path, sample_rate
+        return audio_file_path, sample_rate, processed_audio
 
     @staticmethod
     def _validate_audio(audio: Any, file_path: str) -> None:
         """Validate audio is not silent, raise appropriate error if it is."""
         if PreprocessingService.detect_silence(audio):
             logger.warning("Audio appears to be silent - transcription may not be meaningful")
-            os.remove(file_path)
             raise SilenceError()
 
     @staticmethod
@@ -107,6 +115,10 @@ class TranscriptionService:
         """Create overlapping segments from the audio for processing."""
         segment_length = 15 * sample_rate
         overlap = 7 * sample_rate
+
+        if len(audio) == 0:
+            logger.warning("Audio length is zero, returning empty segments list")
+            return []
 
         segments = []
         for start in range(0, len(audio), segment_length - overlap):
@@ -131,6 +143,10 @@ class TranscriptionService:
         """Process all segments for all requested languages."""
         all_results = {lang: [] for lang in languages}
 
+        if not segments:
+            logger.warning("No segments to process")
+            return all_results
+
         use_fp16 = torch.cuda.is_available()
         logger.info(f"Using fp16: {use_fp16}")
 
@@ -143,24 +159,35 @@ class TranscriptionService:
 
             # Process for each language
             for lang_idx, language in enumerate(languages):
-                options = {
-                    "language": language,
-                    "temperature": 0.5,
-                    "beam_size": 10,
-                    "max_initial_timestamp": 1.0,
-                    "word_timestamps": True,
-                    "fp16": use_fp16,
-                    "initial_prompt": focus_prompt
-                }
+                try:
+                    options = {
+                        "language": language,
+                        "temperature": 0.5,
+                        "beam_size": 10,
+                        "max_initial_timestamp": 1.0,
+                        "word_timestamps": True,
+                        "fp16": use_fp16,
+                        "initial_prompt": focus_prompt
+                    }
 
-                result = model.transcribe(segment, **options)
+                    result = model.transcribe(segment, **options)
 
-                # Create segment result with timing info
-                segment_result = TranscriptionService._create_segment_result(
-                    result, start_time, segment, sample_rate
-                )
+                    # Create segment result with timing info
+                    segment_result = TranscriptionService._create_segment_result(
+                        result, start_time, segment, sample_rate
+                    )
 
-                all_results[language].append(segment_result)
+                    all_results[language].append(segment_result)
+                except Exception as e:
+                    logger.error(f"Error processing segment {i + 1} for language {language}: {str(e)}")
+                    # Add empty segment to maintain sequence (NOT TESTED)
+                    all_results[language].append({
+                        "text": "",
+                        "start": start_time,
+                        "end": start_time + (len(segment) / sample_rate),
+                        "confidence": 0,
+                        "error": str(e)
+                    })
 
         return all_results
 
@@ -173,7 +200,7 @@ class TranscriptionService:
     ) -> Dict[str, Any]:
         """Create a structured result for a segment with timing information."""
         segment_result = {
-            "text": result["text"].strip(),
+            "text": result.get("text", "").strip(),
             "start": start_time,
             "end": start_time + (len(segment) / sample_rate),
             "confidence": result.get("avg_logprob", 0)
@@ -182,9 +209,9 @@ class TranscriptionService:
         if "words" in result and result["words"]:
             segment_result["words"] = [
                 {
-                    "word": word_info["word"],
-                    "start": start_time + word_info["start"],
-                    "end": start_time + word_info["end"],
+                    "word": word_info.get("word", ""),
+                    "start": start_time + word_info.get("start", 0),
+                    "end": start_time + word_info.get("end", 0),
                     "confidence": word_info.get("confidence", 0)
                 }
                 for word_info in result["words"]
@@ -201,7 +228,7 @@ class TranscriptionService:
         transcriptions = {}
 
         for lang in languages:
-            full_text = " ".join([segment["text"] for segment in all_results[lang]])
+            full_text = " ".join([segment.get("text", "") for segment in all_results[lang]])
             full_text = " ".join(full_text.split())
             transcriptions[lang] = full_text
 

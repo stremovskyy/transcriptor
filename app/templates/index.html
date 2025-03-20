@@ -7,161 +7,166 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-    <div class="language-switcher">
-        <button id="lang-uk" class="lang-btn active" data-lang="uk">🇺🇦 Українська</button>
-        <button id="lang-en" class="lang-btn" data-lang="en">🇬🇧 English</button>
+<div class="language-switcher">
+    <button id="lang-uk" class="lang-btn active" data-lang="uk">🇺🇦 Українська</button>
+    <button id="lang-en" class="lang-btn" data-lang="en">🇬🇧 English</button>
+</div>
+<div class="container">
+
+    <h1 class="main-title" data-lang-key="page-title">Аудіо Транскрипція</h1>
+    <div class="version-info">Backend: v{{ config.APP_VERSION }}</div>
+    <!-- API Key Field (Optional) -->
+    <div class="api-key-container">
+        <label for="api-key" data-lang-key="api-key">API Ключ (необов'язково):</label>
+        <div class="input-with-button">
+            <input type="password" id="api-key" name="api-key" placeholder="Введіть API ключ...">
+            <button id="save-api-key" class="btn-primary" data-lang-key="save-api-key">Зберегти</button>
+        </div>
+        <span id="api-key-status" class="hidden success-text" data-lang-key="api-key-saved">Збережено</span>
     </div>
 
-    <div class="container">
-        <h1 class="main-title" data-lang-key="page-title">Аудіо Транскрипція</h1>
-
-        <!-- API Key Field (Optional) -->
-        <div class="api-key-container">
-            <label for="api-key" data-lang-key="api-key">API Ключ (необов'язково):</label>
-            <div class="input-with-button">
-                <input type="password" id="api-key" name="api-key" placeholder="Введіть API ключ...">
-                <button id="save-api-key" class="btn-primary" data-lang-key="save-api-key">Зберегти</button>
-            </div>
-            <span id="api-key-status" class="hidden success-text" data-lang-key="api-key-saved">Збережено</span>
-        </div>
-
-        <div class="tabs">
-            <div class="tab active" data-tab="file-upload" data-lang-key="tab-file">Файл</div>
-            <div class="tab" data-tab="url-upload" data-lang-key="tab-url">URL</div>
-            <div class="tab" data-tab="reconstruct" data-lang-key="tab-reconstruct">Реконструкція</div>
-        </div>
-
-        <!-- File Upload Form -->
-        <form id="upload-form" class="tab-content active form-card" enctype="multipart/form-data">
-            <div class="form-group">
-                <label for="file" data-lang-key="choose-file">Оберіть MP3 Файл:</label>
-                <input type="file" id="file" name="file" accept=".mp3" required>
-            </div>
-
-            <div class="form-group">
-                <label for="lang" data-lang-key="languages">Мови (через кому, замовчування: Ukrainian):</label>
-                <input type="text" id="lang" name="lang" value="Ukrainian">
-            </div>
-
-            <div class="form-group">
-                <label for="keywords" data-lang-key="keywords">Ключові слова (через кому):</label>
-                <input type="text" id="keywords" name="keywords" value="Київ,Харків,Одеса">
-            </div>
-
-            <div class="form-group">
-                <label for="confidence_threshold" data-lang-key="confidence-threshold">Поріг довіри (замовчування: 65):</label>
-                <input type="number" id="confidence_threshold" name="confidence_threshold" value="65" min="0" max="100">
-            </div>
-
-            <div class="form-group">
-                <label for="pre_process_file" data-lang-key="pre_process_file">Пре процессінг файлу:</label>
-                <select id="pre_process_file" name="pre_process_file" class="select-dropdown">
-                    <option value="false" data-lang-key="pre_process_file-false">Ні</option>
-                    <option value="true" data-lang-key="pre_process_file-true">Так</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="model" data-lang-key="model">Моделька:</label>
-                <select id="model" name="model" class="select-dropdown">
-                    <option value="tiny" data-lang-key="model-tiny">Крихітка</option>
-                    <option value="base" data-lang-key="model-base">Базова</option>
-                    <option value="small" data-lang-key="model-small">Маленька</option>
-                    <option value="medium" data-lang-key="model-medium">Середня</option>
-                    <option value="large" data-lang-key="model-large">Велика</option>
-                    <option value="large-v2" data-lang-key="model-large-v2">Велика v2</option>
-                    <option value="large-v3" data-lang-key="model-large-v3">Велика v3</option>
-                    <option value="large-v3-turbo" data-lang-key="model-large-v3-turbo">Велика v3 Turbo</option>
-                    <option value="turbo" data-lang-key="model-turbo">Турбо</option>
-                </select>
-            </div>
-
-            <button type="submit" class="btn-submit" data-lang-key="upload-button">Завантажити</button>
-        </form>
-
-        <!-- URL Form -->
-        <form id="url-form" class="tab-content form-card" enctype="application/json">
-            <div class="form-group">
-                <label for="file_url" data-lang-key="url-file">URL MP3 файлу:</label>
-                <input type="url" id="file_url" name="file_url" required placeholder="https://example.com/audio.mp3">
-            </div>
-
-            <div class="form-group">
-                <label for="url_lang" data-lang-key="url-languages">Мови (через кому, замовчування: Ukrainian):</label>
-                <input type="text" id="url_lang" name="url_lang" value="Ukrainian">
-            </div>
-
-            <div class="form-group">
-                <label for="url_keywords" data-lang-key="url-keywords">Ключові слова (через кому):</label>
-                <input type="text" id="url_keywords" name="url_keywords" value="Київ,Харків,Одеса">
-            </div>
-
-            <div class="form-group">
-                <label for="url_confidence_threshold" data-lang-key="url-confidence-threshold">Поріг довіри (замовчування: 65):</label>
-                <input type="number" id="url_confidence_threshold" name="url_confidence_threshold" value="65" min="0" max="100">
-            </div>
-
-            <div class="form-group">
-                <label for="pre_process_file" data-lang-key="pre_process_file">Пре процессінг файлу:</label>
-                <select id="url_pre_process_file" name="pre_process_file" class="select-dropdown">
-                    <option value="false" data-lang-key="pre_process_file-false">Ні</option>
-                    <option value="true" data-lang-key="pre_process_file-true">Так</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="url_model" data-lang-key="url-model">Моделька:</label>
-                <select id="url_model" name="url_model" class="select-dropdown">
-                    <option value="tiny" data-lang-key="url-model-tiny">Крихітка</option>
-                    <option value="base" data-lang-key="url-model-base">Базова</option>
-                    <option value="small" data-lang-key="url-model-small">Маленька</option>
-                    <option value="medium" data-lang-key="url-model-medium">Середня</option>
-                    <option value="large" data-lang-key="url-model-large">Велика</option>
-                    <option value="large-v2" data-lang-key="url-model-large-v2">Велика v2</option>
-                    <option value="large-v3" data-lang-key="url-model-large-v3">Велика v3</option>
-                    <option value="large-v3-turbo" data-lang-key="url-model-large-v3-turbo">Велика v3 Turbo</option>
-                    <option value="turbo" data-lang-key="url-model-turbo">Турбо</option>
-                </select>
-            </div>
-
-            <button type="submit" class="btn-submit" data-lang-key="transcribe-button">Транскрибувати</button>
-        </form>
-
-        <!-- Reconstruction Form -->
-        <form id="reconstruct-form" class="tab-content form-card" enctype="application/json">
-            <div class="form-group">
-                <label for="reconstruction_text" data-lang-key="reconstruction-text">Текст для реконструкції:</label>
-                <textarea id="reconstruction_text" name="reconstruction_text" required placeholder="Вставте транскрибований текст тут..."></textarea>
-            </div>
-
-            <div class="form-group">
-                <label for="reconstruction_template" data-lang-key="reconstruction-template">Шаблон реконструкції:</label>
-                <textarea id="reconstruction_template" name="reconstruction_template" required placeholder="Опишіть формат або структуру для реконструкції..."></textarea>
-            </div>
-
-            <div class="form-group">
-                <label for="max_length" data-lang-key="max-length">Максимальна довжина (замовчування: 1500):</label>
-                <input type="number" id="max_length" name="max_length" value="1500" min="50" max="5000">
-            </div>
-
-            <div class="form-group">
-                <label for="model_id" data-lang-key="model-id">Моделька:</label>
-                <select id="model_id" name="model_id" class="select-dropdown">
-                    <option value="google/gemma-2-2b-it" data-lang-key="model-gemma-2b">Gemma2 -2B</option>
-                    <option value="google/gemma-2-9b-it" data-lang-key="model-gemma-9b">Gemma2 -9B</option>
-                </select>
-            </div>
-
-            <button type="submit" class="btn-submit" data-lang-key="reconstruct-button">Реконструювати</button>
-        </form>
-
-        <div class="result-section">
-            <h2 class="section-title" data-lang-key="result-title">Результат</h2>
-            <p id="loading" class="loading" data-lang-key="processing">Обробка запиту...</p>
-            <div id="result" class="result-content"></div>
-        </div>
+    <div class="tabs">
+        <div class="tab active" data-tab="file-upload" data-lang-key="tab-file">Файл</div>
+        <div class="tab" data-tab="url-upload" data-lang-key="tab-url">URL</div>
+        <div class="tab" data-tab="reconstruct" data-lang-key="tab-reconstruct">Реконструкція</div>
     </div>
 
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <!-- File Upload Form -->
+    <form id="upload-form" class="tab-content active form-card" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="file" data-lang-key="choose-file">Оберіть MP3 Файл:</label>
+            <input type="file" id="file" name="file" accept=".mp3" required>
+        </div>
+
+        <div class="form-group">
+            <label for="lang" data-lang-key="languages">Мови (через кому, замовчування: Ukrainian):</label>
+            <input type="text" id="lang" name="lang" value="Ukrainian">
+        </div>
+
+        <div class="form-group">
+            <label for="keywords" data-lang-key="keywords">Ключові слова (через кому):</label>
+            <input type="text" id="keywords" name="keywords" value="Київ,Харків,Одеса">
+        </div>
+
+        <div class="form-group">
+            <label for="confidence_threshold" data-lang-key="confidence-threshold">Поріг довіри (замовчування:
+                65):</label>
+            <input type="number" id="confidence_threshold" name="confidence_threshold" value="65" min="0" max="100">
+        </div>
+
+        <div class="form-group">
+            <label for="pre_process_file" data-lang-key="pre_process_file">Пре процессінг файлу:</label>
+            <select id="pre_process_file" name="pre_process_file" class="select-dropdown">
+                <option value="false" data-lang-key="pre_process_file-false">Ні</option>
+                <option value="true" data-lang-key="pre_process_file-true">Так</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="model" data-lang-key="model">Моделька:</label>
+            <select id="model" name="model" class="select-dropdown">
+                <option value="tiny" data-lang-key="model-tiny">Крихітка</option>
+                <option value="base" data-lang-key="model-base">Базова</option>
+                <option value="small" data-lang-key="model-small">Маленька</option>
+                <option value="medium" data-lang-key="model-medium">Середня</option>
+                <option value="large" data-lang-key="model-large">Велика</option>
+                <option value="large-v2" data-lang-key="model-large-v2">Велика v2</option>
+                <option value="large-v3" data-lang-key="model-large-v3">Велика v3</option>
+                <option value="large-v3-turbo" data-lang-key="model-large-v3-turbo">Велика v3 Turbo</option>
+                <option value="turbo" data-lang-key="model-turbo">Турбо</option>
+            </select>
+        </div>
+
+        <button type="submit" class="btn-submit" data-lang-key="upload-button">Завантажити</button>
+    </form>
+
+    <!-- URL Form -->
+    <form id="url-form" class="tab-content form-card" enctype="application/json">
+        <div class="form-group">
+            <label for="file_url" data-lang-key="url-file">URL MP3 файлу:</label>
+            <input type="url" id="file_url" name="file_url" required placeholder="https://example.com/audio.mp3">
+        </div>
+
+        <div class="form-group">
+            <label for="url_lang" data-lang-key="url-languages">Мови (через кому, замовчування: Ukrainian):</label>
+            <input type="text" id="url_lang" name="url_lang" value="Ukrainian">
+        </div>
+
+        <div class="form-group">
+            <label for="url_keywords" data-lang-key="url-keywords">Ключові слова (через кому):</label>
+            <input type="text" id="url_keywords" name="url_keywords" value="Київ,Харків,Одеса">
+        </div>
+
+        <div class="form-group">
+            <label for="url_confidence_threshold" data-lang-key="url-confidence-threshold">Поріг довіри (замовчування:
+                65):</label>
+            <input type="number" id="url_confidence_threshold" name="url_confidence_threshold" value="65" min="0"
+                   max="100">
+        </div>
+
+        <div class="form-group">
+            <label for="pre_process_file" data-lang-key="pre_process_file">Пре процессінг файлу:</label>
+            <select id="url_pre_process_file" name="pre_process_file" class="select-dropdown">
+                <option value="false" data-lang-key="pre_process_file-false">Ні</option>
+                <option value="true" data-lang-key="pre_process_file-true">Так</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="url_model" data-lang-key="url-model">Моделька:</label>
+            <select id="url_model" name="url_model" class="select-dropdown">
+                <option value="tiny" data-lang-key="url-model-tiny">Крихітка</option>
+                <option value="base" data-lang-key="url-model-base">Базова</option>
+                <option value="small" data-lang-key="url-model-small">Маленька</option>
+                <option value="medium" data-lang-key="url-model-medium">Середня</option>
+                <option value="large" data-lang-key="url-model-large">Велика</option>
+                <option value="large-v2" data-lang-key="url-model-large-v2">Велика v2</option>
+                <option value="large-v3" data-lang-key="url-model-large-v3">Велика v3</option>
+                <option value="large-v3-turbo" data-lang-key="url-model-large-v3-turbo">Велика v3 Turbo</option>
+                <option value="turbo" data-lang-key="url-model-turbo">Турбо</option>
+            </select>
+        </div>
+
+        <button type="submit" class="btn-submit" data-lang-key="transcribe-button">Транскрибувати</button>
+    </form>
+
+    <!-- Reconstruction Form -->
+    <form id="reconstruct-form" class="tab-content form-card" enctype="application/json">
+        <div class="form-group">
+            <label for="reconstruction_text" data-lang-key="reconstruction-text">Текст для реконструкції:</label>
+            <textarea id="reconstruction_text" name="reconstruction_text" required
+                      placeholder="Вставте транскрибований текст тут..."></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="reconstruction_template" data-lang-key="reconstruction-template">Шаблон реконструкції:</label>
+            <textarea id="reconstruction_template" name="reconstruction_template" required
+                      placeholder="Опишіть формат або структуру для реконструкції..."></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="max_length" data-lang-key="max-length">Максимальна довжина (замовчування: 1500):</label>
+            <input type="number" id="max_length" name="max_length" value="1500" min="50" max="5000">
+        </div>
+
+        <div class="form-group">
+            <label for="model_id" data-lang-key="model-id">Моделька:</label>
+            <select id="model_id" name="model_id" class="select-dropdown">
+                <option value="google/gemma-2-2b-it" data-lang-key="model-gemma-2b">Gemma2 -2B</option>
+                <option value="google/gemma-2-9b-it" data-lang-key="model-gemma-9b">Gemma2 -9B</option>
+            </select>
+        </div>
+
+        <button type="submit" class="btn-submit" data-lang-key="reconstruct-button">Реконструювати</button>
+    </form>
+
+    <div class="result-section">
+        <h2 class="section-title" data-lang-key="result-title">Результат</h2>
+        <p id="loading" class="loading" data-lang-key="processing">Обробка запиту...</p>
+        <div id="result" class="result-content"></div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>

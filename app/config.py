@@ -6,6 +6,8 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
+Version = '1.1.1'
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -33,6 +35,7 @@ def configure_app(app):
     )
 
     app.config.update(
+        APP_VERSION=Version,
         API_KEY_ENABLED=ConfigManager.get_env('API_KEY_ENABLED', 'true').lower() == 'true',
         API_KEY=ConfigManager.get_env('API_KEY', 'default-api-key-change-me'),
         UI_ENABLED=ConfigManager.get_env('UI_ENABLED', 'true').lower() == 'true',
