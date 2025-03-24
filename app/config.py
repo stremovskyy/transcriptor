@@ -8,6 +8,10 @@ logger = logging.getLogger(__name__)
 
 Version = '1.1.1'
 
+# Create logs directory if it doesn't exist
+os.makedirs('logs', exist_ok=True)
+
+# Configure logging with more detailed format
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -16,6 +20,10 @@ logging.basicConfig(
         logging.StreamHandler()
     ]
 )
+
+# logging.getLogger('app.preprocessing').setLevel(logging.DEBUG)
+# logging.getLogger('app.transcription').setLevel(logging.DEBUG)
+# logging.getLogger('app.models').setLevel(logging.DEBUG)
 
 def str_to_bool(value: str) -> bool:
     return value.lower() in ('true', '1', 't', 'yes', 'y')

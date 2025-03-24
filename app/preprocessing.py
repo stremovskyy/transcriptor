@@ -76,9 +76,44 @@ class PreprocessingService:
     def _apply_processing_pipeline(audio: np.ndarray) -> np.ndarray:
         """
         Applies a series of processing steps based on the configuration:
-        DC offset removal, normalization, pre-emphasis, noise reduction,
-        dynamic range compression, and silence trimming.
+        silence trimming, DC offset removal, normalization, pre-emphasis, noise reduction,
+        and dynamic range compression.
         """
+        # Trim silence first
+        if config.get('enable_trim_silence', True):
+            trim_db = config.get('trim_db', 60)
+            logger.info(f"Trimming silence with top_db = {trim_db}")
+            
+            # Log audio statistics before trimming
+            rms_before = np.sqrt(np.mean(np.square(audio)))
+            max_before = np.max(np.abs(audio))
+            min_before = np.min(np.abs(audio))
+            mean_before = np.mean(np.abs(audio))
+            logger.info(f"Pre-trim audio stats - RMS: {rms_before:.6f}, Max: {max_before:.6f}, Min: {min_before:.6f}, Mean: {mean_before:.6f}")
+            
+            # Get trim indices for debugging
+            audio_trimmed, (start_idx, end_idx) = librosa.effects.trim(audio, top_db=trim_db)
+            
+            # Log trim results
+            duration_before = len(audio)
+            duration_after = len(audio_trimmed)
+            trimmed_samples = duration_before - duration_after
+            logger.info(f"Trim results - Original duration: {duration_before}, Trimmed duration: {duration_after}, "
+                       f"Trimmed samples: {trimmed_samples}, Trim indices: [{start_idx}, {end_idx}]")
+            
+            # Log audio statistics after trimming
+            rms_after = np.sqrt(np.mean(np.square(audio_trimmed)))
+            max_after = np.max(np.abs(audio_trimmed))
+            min_after = np.min(np.abs(audio_trimmed))
+            mean_after = np.mean(np.abs(audio_trimmed))
+            logger.info(f"Post-trim audio stats - RMS: {rms_after:.6f}, Max: {max_after:.6f}, Min: {min_after:.6f}, Mean: {mean_after:.6f}")
+            
+            # Check for potential false positives
+            if trimmed_samples > duration_before * 0.5:  # If more than 50% was trimmed
+                logger.warning(f"Large amount of audio trimmed: {trimmed_samples/duration_before*100:.1f}% of original audio")
+            
+            audio = audio_trimmed
+
         # Remove DC offset
         if config.get('enable_dc_offset', True):
             mean_val = np.mean(audio)
@@ -105,12 +140,6 @@ class PreprocessingService:
         if config.get('enable_compression', False):
             logger.info("Applying dynamic range compression")
             audio = np.sign(audio) * np.log1p(np.abs(audio))
-
-        # Trim silence
-        if config.get('enable_trim_silence', True):
-            trim_db = config.get('trim_db', 60)
-            logger.info(f"Trimming silence with top_db = {trim_db}")
-            audio, _ = librosa.effects.trim(audio, top_db=trim_db)
 
         return audio
 
@@ -148,7 +177,8 @@ class PreprocessingService:
     @staticmethod
     def detect_silence(audio: np.ndarray, threshold: Optional[float] = None) -> bool:
         """
-        Determines whether the audio is silent by evaluating its RMS amplitude.
+        Determines whether the audio is silent by evaluating its RMS amplitude and energy distribution.
+        Uses a more lenient approach that considers both overall RMS and local energy peaks.
 
         Args:
             audio: The audio signal (numpy array).
@@ -159,9 +189,48 @@ class PreprocessingService:
         """
         if threshold is None:
             threshold = config.get('silence_threshold', 0.01)
+            
+        # Calculate various audio statistics for debugging
         rms = np.sqrt(np.mean(np.square(audio)))
-        is_silent = rms < threshold
-        logger.info(
-            f"Audio RMS: {rms:.4f} - {'silent' if is_silent else 'contains sound'} (threshold: {threshold})"
+        max_val = np.max(np.abs(audio))
+        min_val = np.min(np.abs(audio))
+        mean_val = np.mean(np.abs(audio))
+        std_val = np.std(audio)
+        
+        # Calculate energy distribution
+        energy = np.square(audio)
+        energy_above_threshold = np.mean(energy > threshold)
+        
+        # Calculate local energy peaks
+        frame_length = 2048  # About 128ms at 16kHz
+        hop_length = 512
+        D = librosa.stft(audio, n_fft=frame_length, hop_length=hop_length)
+        D_mag = np.abs(D)
+        local_energy = np.mean(D_mag, axis=0)
+        peak_energy = np.max(local_energy)
+        
+        # Log detailed audio statistics
+        logger.info(f"Silence detection stats:")
+        logger.info(f"- RMS: {rms:.6f}")
+        logger.info(f"- Max amplitude: {max_val:.6f}")
+        logger.info(f"- Min amplitude: {min_val:.6f}")
+        logger.info(f"- Mean amplitude: {mean_val:.6f}")
+        logger.info(f"- Standard deviation: {std_val:.6f}")
+        logger.info(f"- Energy above threshold ratio: {energy_above_threshold:.6f}")
+        logger.info(f"- Peak local energy: {peak_energy:.6f}")
+        logger.info(f"- Silence threshold: {threshold}")
+        
+        # More lenient silence detection
+        # Consider audio non-silent if:
+        # 1. It has significant local energy peaks (indicating speech or sound)
+        # 2. The maximum amplitude is above a minimum threshold
+        # 3. The standard deviation indicates some variation in the signal
+        is_silent = (
+            peak_energy < threshold * 2 and  # No significant local energy peaks
+            max_val < threshold * 4 and      # No significant amplitude peaks
+            std_val < threshold * 2          # Low variation in the signal
         )
+        
+        logger.info(f"Audio {'silent' if is_silent else 'contains sound'} "
+                   f"(Peak energy: {peak_energy:.6f}, Max: {max_val:.6f}, Std: {std_val:.6f})")
         return is_silent
