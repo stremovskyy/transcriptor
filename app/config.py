@@ -6,7 +6,7 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-Version = '1.1.1'
+Version = '1.2.0'
 
 # Create logs directory if it doesn't exist
 os.makedirs('logs', exist_ok=True)

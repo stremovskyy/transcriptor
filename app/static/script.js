@@ -5,6 +5,7 @@ const translations = {
         'tab-file': 'Файл',
         'tab-url': 'URL',
         'tab-reconstruct': 'Реконструкція',
+        'tab-tts': 'Озвучення',
         'api-key': 'API Ключ:',
         'save-api-key': 'Зберегти',
         'api-key-saved': 'Збережено',
@@ -62,12 +63,25 @@ const translations = {
         'pre_process_file' : 'Препроцессінг файлу',
         'pre_process_file-false' : 'Не обробляти файл',
         'pre_process_file-true' : 'Обробити файл',
+        'tts-text': 'Текст для озвучення:',
+        'tts-language': 'Мова:',
+        'tts-language-uk': 'Українська',
+        'tts-language-en': 'Англійська',
+        'tts-voice': 'Голос:',
+        'tts-voice-mykyta': 'Микита (чоловічий)',
+        'tts-voice-olena': 'Олена (жіночий)',
+        'tts-button': 'Озвучити',
+        'tts-generating': 'Генерація аудіо...',
+        'tts-play': 'Відтворити',
+        'tts-download': 'Завантажити MP3',
+        'tts-result': 'Аудіо згенеровано:',
     },
     'en': {
         'page-title': 'Audio Transcription',
         'tab-file': 'File',
         'tab-url': 'URL',
         'tab-reconstruct': 'Reconstruction',
+        'tab-tts': 'Text to Speech',
         'api-key': 'API Key:',
         'save-api-key': 'Save',
         'api-key-saved': 'Saved',
@@ -125,6 +139,18 @@ const translations = {
         'pre_process_file' : 'Pre-process file',
         'pre_process_file-false' : 'Do not pre-process file',
         'pre_process_file-true' : 'Pre-process file',
+        'tts-text': 'Text for Speech:',
+        'tts-language': 'Language:',
+        'tts-language-uk': 'Ukrainian',
+        'tts-language-en': 'English',
+        'tts-voice': 'Voice:',
+        'tts-voice-mykyta': 'Mykyta (male)',
+        'tts-voice-olena': 'Olena (female)',
+        'tts-button': 'Generate Speech',
+        'tts-generating': 'Generating audio...',
+        'tts-play': 'Play',
+        'tts-download': 'Download MP3',
+        'tts-result': 'Audio generated:',
     }
 };
 
@@ -151,11 +177,11 @@ function setLanguage(lang) {
     // Update placeholders for textareas and API key
     if (lang === 'uk') {
         document.getElementById('reconstruction_text').placeholder = 'Вставте транскрибований текст тут...';
-        document.getElementById('reconstruction_template').placeholder = 'Опишіть формат або структуру для реконструкції...';
+        document.getElementById('reconstruction_template').placeholder = 'Використовуйте {transcription} як плейсхолдер для тексту. Наприклад: \'Виправте помилки в тексті: {transcription}\'';
         document.getElementById('api-key').placeholder = 'Введіть API ключ...';
     } else {
         document.getElementById('reconstruction_text').placeholder = 'Paste transcribed text here...';
-        document.getElementById('reconstruction_template').placeholder = 'Describe format or structure for reconstruction...';
+        document.getElementById('reconstruction_template').placeholder = 'Use {transcription} as a placeholder for your text. Example: \'Fix errors in the text: {transcription}\'';
         document.getElementById('api-key').placeholder = 'Enter API key...';
     }
 
@@ -243,6 +269,8 @@ document.querySelectorAll('.tab').forEach(tab => {
             document.getElementById('url-form').classList.add('active');
         } else if (tabId === 'reconstruct') {
             document.getElementById('reconstruct-form').classList.add('active');
+        } else if (tabId === 'tts') {
+            document.getElementById('tts-form').classList.add('active');
         }
     });
 });
@@ -498,6 +526,104 @@ function displayReconstructionResult(result) {
                 .catch(err => {
                     console.error('Copy failed: ', err);
                 });
+        });
+    });
+}
+
+// TTS form handler
+document.getElementById('tts-form').addEventListener('submit', async function(event) {
+    event.preventDefault();
+    const textField = document.getElementById('tts_text');
+    const languageField = document.getElementById('tts_language');
+    const voiceField = document.getElementById('tts_voice');
+    const button = event.target.querySelector('button');
+    const loading = document.getElementById('loading');
+
+    const jsonData = {
+        text: textField.value,
+        language: languageField.value,
+        voice: voiceField.value
+    };
+
+    button.disabled = true;
+    loading.style.display = 'block';
+    loading.textContent = getLocalizedText('tts-generating');
+    document.getElementById('result').textContent = '';
+
+    try {
+        const startTime = performance.now();
+        const response = await fetch('/tts', {
+            method: 'POST',
+            headers: createHeaders('application/json'),
+            body: JSON.stringify(jsonData)
+        });
+        const endTime = performance.now();
+        const result = await response.json();
+        if (response.ok) {
+            displayTTSResult(result);
+        } else {
+            document.getElementById('result').textContent = `Error: ${result.error}`;
+        }
+    } catch (error) {
+        document.getElementById('result').textContent = `Error: ${error.message}`;
+    } finally {
+        button.disabled = false;
+        loading.style.display = 'none';
+    }
+});
+
+// Add language change handler for TTS
+document.getElementById('tts_language').addEventListener('change', function() {
+    const language = this.value;
+    const voiceSelect = document.getElementById('tts_voice');
+    
+    // Clear existing options
+    voiceSelect.innerHTML = '';
+    
+    if (language === 'ua') {
+        // Ukrainian voices
+        voiceSelect.innerHTML = `
+            <option value="mykyta" data-lang-key="tts-voice-mykyta">${currentLang === 'uk' ? 'Микита (чоловічий)' : 'Mykyta (male)'}</option>
+            <option value="olena" data-lang-key="tts-voice-olena">${currentLang === 'uk' ? 'Олена (жіночий)' : 'Olena (female)'}</option>
+        `;
+    } else if (language === 'en') {
+        // English voice
+        voiceSelect.innerHTML = `
+            <option value="en_0">English Voice</option>
+        `;
+    }
+});
+
+// Function to display TTS results
+function displayTTSResult(result) {
+    let resultHtml = `<div>${getLocalizedText('processing-time', { time: result.processing_time.toFixed(2) })}</div><br>`;
+
+    resultHtml += `<div><strong>${getLocalizedText('tts-result')}</strong>
+        <div class="audio-player">
+            <audio id="tts-audio" controls>
+                <source src="${result.audio_url}" type="audio/mpeg">
+                ${currentLang === 'uk' ? 'Ваш браузер не підтримує аудіо елемент.' : 'Your browser does not support the audio element.'}
+            </audio>
+        </div>
+        <div class="action-buttons">
+            <button class="play-button" data-audio="${result.audio_url}">${getLocalizedText('tts-play')}</button>
+            <a href="${result.audio_url}" download class="download-button">${getLocalizedText('tts-download')}</a>
+        </div>
+    </div>`;
+
+    document.getElementById('result').innerHTML = resultHtml;
+
+    // Add event listeners for play buttons
+    document.querySelectorAll('.play-button').forEach(button => {
+        button.addEventListener('click', function() {
+            const audioElement = document.getElementById('tts-audio');
+            if (audioElement.paused) {
+                audioElement.play();
+                this.textContent = currentLang === 'uk' ? 'Пауза' : 'Pause';
+            } else {
+                audioElement.pause();
+                this.textContent = getLocalizedText('tts-play');
+            }
         });
     });
 }

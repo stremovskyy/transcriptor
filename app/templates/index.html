@@ -29,6 +29,7 @@
         <div class="tab active" data-tab="file-upload" data-lang-key="tab-file">Файл</div>
         <div class="tab" data-tab="url-upload" data-lang-key="tab-url">URL</div>
         <div class="tab" data-tab="reconstruct" data-lang-key="tab-reconstruct">Реконструкція</div>
+        <div class="tab" data-tab="tts" data-lang-key="tab-tts">Озвучення</div>
     </div>
 
     <!-- File Upload Form -->
@@ -141,7 +142,7 @@
         <div class="form-group">
             <label for="reconstruction_template" data-lang-key="reconstruction-template">Шаблон реконструкції:</label>
             <textarea id="reconstruction_template" name="reconstruction_template" required
-                      placeholder="Опишіть формат або структуру для реконструкції..."></textarea>
+                      placeholder="Використовуйте {transcription} як плейсхолдер для тексту. Наприклад: 'Виправте помилки в тексті: {transcription}'"></textarea>
         </div>
 
         <div class="form-group">
@@ -158,6 +159,33 @@
         </div>
 
         <button type="submit" class="btn-submit" data-lang-key="reconstruct-button">Реконструювати</button>
+    </form>
+
+    <!-- TTS Form -->
+    <form id="tts-form" class="tab-content form-card" enctype="application/json">
+        <div class="form-group">
+            <label for="tts_text" data-lang-key="tts-text">Текст для озвучення:</label>
+            <textarea id="tts_text" name="tts_text" required
+                      placeholder="Введіть текст для озвучення..."></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="tts_language" data-lang-key="tts-language">Мова:</label>
+            <select id="tts_language" name="tts_language" class="select-dropdown">
+                <option value="ua" data-lang-key="tts-language-uk">Українська</option>
+                <option value="en" data-lang-key="tts-language-en">Англійська</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="tts_voice" data-lang-key="tts-voice">Голос:</label>
+            <select id="tts_voice" name="tts_voice" class="select-dropdown">
+                <option value="mykyta" data-lang-key="tts-voice-mykyta">Микита (чоловічий)</option>
+                <option value="olena" data-lang-key="tts-voice-olena">Олена (жіночий)</option>
+            </select>
+        </div>
+
+        <button type="submit" class="btn-submit" data-lang-key="tts-button">Озвучити</button>
     </form>
 
     <div class="result-section">

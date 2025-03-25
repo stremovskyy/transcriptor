@@ -3,6 +3,7 @@ flask-limiter
 werkzeug
 python-dotenv
 torch
+torchaudio
 openai-whisper
 rapidfuzz
 gunicorn
@@ -13,3 +14,4 @@ mpmath
 sympy
 urllib3
 librosa
+omegaconf

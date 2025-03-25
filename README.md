@@ -6,6 +6,17 @@
 
 A production-ready Flask application for audio transcription using OpenAI's Whisper models and text reconstruction with Google's Gemma models. Provides both REST API endpoints and a simple web interface.
 
+## Project Description
+
+This service allows users to:
+- Upload audio files for transcription
+- Pull audio from remote URLs
+- Transcribe audio in multiple languages
+- Spot keywords within transcriptions with advanced features
+- Preprocess audio for improved transcription quality
+- Reconstruct and improve transcribed text using Gemma models
+- Convert text to speech with Ukrainian language support
+
 ## Key Features
 
 - 🎙️ **Multi-language Transcription** (Ukrainian, English, etc.)
@@ -21,18 +32,25 @@ A production-ready Flask application for audio transcription using OpenAI's Whis
 - 📝 **Gemma Text Reconstruction**  
   - 🔒 Safe model loading with memory checks  
   - 📈 Performance metrics tracking  
+- 🔊 **Text-to-Speech (TTS)**
+  - 🇺🇦 Ukrainian language support
+  - 👨‍👩‍ Multiple voice options
+  - 💾 Download as MP3 or play on site
 - 🌐 **Web Interface** with preprocessing controls
 - 🔐 API Key Authentication & Rate Limiting
 
 ## Table of Contents
 
+- [Project Description](#project-description)
 - [New in 1.1.0](#new-in-110)
 - [Installation](#installation)
 - [Configuration](#configuration)
 - [API Documentation](#api-documentation)
+- [Architecture](#architecture)
 - [Web Interface](#web-interface)
 - [Deployment](#deployment)
 - [Contributing](#contributing)
+- [Future Development](#future-development)
 
 ## New in 1.1.0
 
@@ -127,13 +145,57 @@ Transcribe audio from remote URL
 ```
 
 #### POST `/reconstruct`
-Improve transcription text using Gemma
+Improve transcription text using Gemma models
 
 **Request:**
 ```json
 {
   "transcription": "raw text from whisper",
-  "template": "formal report format"
+  "template": "Fix errors in the text: {transcription}",
+  "model_id": "google/gemma-2b-it",
+  "max_length": 1500
+}
+```
+
+**Parameters:**
+- `transcription`: The text to be reconstructed (required)
+- `template`: Template for reconstruction with `{transcription}` placeholder (optional)
+- `model_id`: Gemma model ID (default: "google/gemma-2b-it")
+- `max_length`: Maximum length of generated text (default: 1500)
+
+**Response:**
+```json
+{
+  "original_transcription": "original text with erors",
+  "template": "Fix errors in the text: {transcription}",
+  "reconstructed_text": "original text with errors fixed",
+  "processing_time": 2.34
+}
+```
+
+#### POST `/tts`
+Convert text to speech using Silero TTS models
+
+**Request:**
+```json
+{
+  "text": "Текст для озвучення українською мовою",
+  "language": "uk",
+  "voice": "mykyta"
+}
+```
+
+**Parameters:**
+- `text`: The text to convert to speech (required)
+- `language`: Language code (default: "uk" for Ukrainian, also supports "en" for English)
+- `voice`: Voice to use (options: "mykyta" or "olena" for Ukrainian, "en_0" or "en_1" for English)
+
+**Response:**
+```json
+{
+  "status": "success",
+  "audio_url": "/static/audio/f8e7d6c5-b4a3-42d1-9e8f-7a6b5c4d3e2f.mp3",
+  "processing_time": 1.23
 }
 ```
 
@@ -158,6 +220,15 @@ Improve transcription text using Gemma
 }
 ```
 
+## Architecture
+
+The application follows a modular architecture with:
+- Flask web framework for routing and API endpoints
+- Middleware for authentication and rate limiting
+- Preprocessing module for audio enhancement
+- Transcription module using Whisper models
+- Text reconstruction using Gemma models
+
 ## Web Interface
 
 ![Web Interface](./screenshots/ui-preview.png)
@@ -166,6 +237,46 @@ Improve transcription text using Gemma
 - Preprocessing toggle switch
 - Real-time processing statistics
 - Enhanced keyword configuration panel
+- Text reconstruction with Gemma models
+
+### Using Text Reconstruction
+
+The web interface provides a dedicated "Reconstruction" tab for improving transcribed text:
+
+1. **Access the Reconstruction Tab**:
+   - Click the "Reconstruction" tab in the main interface
+   - Or click the "Reconstruct" button on any transcription result
+
+2. **Input Options**:
+   - **Text**: Paste or enter the text to be reconstructed
+   - **Template**: Provide instructions for reconstruction (optional)
+     - Use `{transcription}` as a placeholder for your text
+     - Example: "Fix grammar errors in: {transcription}"
+     - If left empty, a language-appropriate template will be used automatically
+   - **Maximum Length**: Set the maximum output length (default: 1500)
+   - **Model**: Choose between Gemma2-2B (faster) or Gemma2-9B (higher quality)
+
+3. **Results**:
+   - View both original and reconstructed text
+   - Copy results with one click
+   - Processing time statistics
+
+### Using Text-to-Speech
+
+The web interface provides a dedicated "Text to Speech" tab for converting text to speech:
+
+1. **Access the TTS Tab**:
+   - Click the "Text to Speech" tab in the main interface
+
+2. **Input Options**:
+   - **Text**: Enter the text you want to convert to speech
+   - **Language**: Choose the language (Ukrainian or English)
+   - **Voice**: Select a voice (Mykyta or Olena for Ukrainian, English voices for English)
+
+3. **Results**:
+   - Listen to the generated audio directly in the browser
+   - Download the audio as an MP3 file
+   - Processing time statistics
 
 ## Deployment
 
@@ -195,6 +306,24 @@ We welcome contributions! Please see our [contribution guidelines](CONTRIBUTING.
 - Bug reporting standards
 - Code style requirements
 - Pull request workflow
+
+### Development Guidelines
+When contributing to this project, please:
+1. Follow the established code structure and patterns
+2. Ensure all new features have appropriate tests
+3. Document API changes and new functionality
+4. Maintain backward compatibility when possible
+5. Optimize for both CPU and GPU environments
+
+## Future Development
+
+Areas for potential enhancement include:
+- Additional language model support
+- Real-time transcription capabilities
+- Enhanced keyword analysis features
+- Integration with more audio sources
+- Additional TTS voices and languages
+- Improved UI/UX for the web interface
 
 ---
 

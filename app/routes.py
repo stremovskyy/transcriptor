@@ -13,6 +13,7 @@ from app.models import ModelCache, GemmaModelCache
 from app.middleware import api_key_required, check_ui_enabled, version_header
 from app.text_reconstruction import TextReconstructionService
 from app.transcription import TranscriptionService
+from app.tts import tts_service
 from app.utils import allowed_file
 from urllib.parse import urlparse
 import uuid
@@ -380,6 +381,78 @@ def reconstruct_text():
     except Exception as e:
         logger.exception(f"Text reconstruction error: {e}")
         return jsonify({"error": str(e), "details": traceback.format_exc()}), 500
+
+
+@routes.route('/preload_tts_model', methods=['POST'])
+@api_key_required
+@version_header
+def preload_tts_model():
+    try:
+        success = tts_service.load_model()
+        if success:
+            return jsonify({"status": "TTS model preloaded successfully"}), 200
+        else:
+            # Check if omegaconf is missing
+            from app.tts import omegaconf
+            if omegaconf is None:
+                error_msg = "Failed to preload TTS model: 'omegaconf' module is missing. Please install it with 'pip install omegaconf'"
+            else:
+                error_msg = "Failed to preload TTS model"
+            return jsonify({"error": error_msg}), 500
+    except Exception as e:
+        logger.error(f"TTS model preload error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@routes.route('/tts', methods=['POST'])
+@api_key_required
+@version_header
+def text_to_speech():
+    """
+    Text-to-speech endpoint that converts text to speech using Silero TTS.
+    Supports only Ukrainian ('ua') and English ('en') languages.
+    """
+    try:
+        data = request.get_json()
+        if not data:
+            raise BadRequest("No JSON data provided")
+
+        text = data.get('text')
+        if not text:
+            raise BadRequest("No text provided")
+
+        # Get language and voice parameters, defaulting to Ukrainian
+        language = data.get('language', 'ua')  # Changed default from 'uk' to 'ua'
+
+        # Ensure only supported languages are used
+        if language not in ['ua', 'en']:
+            logger.warning(f"Unsupported language requested: {language}. Defaulting to Ukrainian ('ua').")
+            language = 'ua'
+
+        voice = data.get('voice')
+
+        logger.info(f"TTS parameters: text='{text[:50]}...', language={language}, voice={voice}")
+
+        # Generate speech
+        start_time = time.time()
+        audio_path = tts_service.text_to_speech(text, language, voice)
+        end_time = time.time()
+
+        processing_time = round(end_time - start_time, 2)
+        logger.info(f"TTS completed in {processing_time} seconds")
+
+        return jsonify({
+            "status": "success",
+            "audio_url": f"/static/{audio_path}",
+            "processing_time": processing_time
+        })
+
+    except BadRequest as e:
+        logger.error(f"Bad request: {e}")
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        logger.error(f"TTS error: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 
 def register_routes(app):

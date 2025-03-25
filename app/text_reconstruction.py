@@ -8,14 +8,33 @@ class TextReconstructionService:
     @staticmethod
     def reconstruct_text(transcription, template, model, tokenizer, max_length=1500):
         try:
+            # If template is provided, use it directly
+            if template:
+                prompt_content = template.replace("{transcription}", transcription)
+            # Otherwise, determine language and use appropriate default template
+            else:
+                # Simple language detection based on common characters
+                # This is a basic approach - for production, consider using a proper language detection library
+                if any(c in transcription for c in 'їєіґ'):
+                    # Ukrainian default template
+                    prompt_content = (
+                        f"Виправте помилки в тексті отриманому зі STT (Whisper) Українською мовою.\n"
+                        f"Виправляйте очевидні помилки розпізнавання мовлення. Не додавайте форматування, коментарів чи додаткової інформації.\n"
+                        f"STT текст для виправлення:\n{transcription}\n\n"
+                        f"Результат має містити ВИКЛЮЧНО виправлений текст без будь-яких додатків."
+                    )
+                else:
+                    # English default template
+                    prompt_content = (
+                        f"Fix errors in the text obtained from STT (Whisper).\n"
+                        f"Correct obvious speech recognition errors. Do not add formatting, comments, or additional information.\n"
+                        f"STT text to fix:\n{transcription}\n\n"
+                        f"The result should contain ONLY the corrected text without any additions."
+                    )
+
             messages = [{
                 "role": "user",
-                "content": (
-                    f"Виправте помилки в тексті отриманому зі STT (Whisper) Українською мовою.\n"
-                    f"Виправляйте очевидні помилки розпізнавання мовлення. Не додавайте форматування, коментарів чи додаткової інформації.\n"
-                    f"STT текст для виправлення:\n{transcription}\n\n"
-                    f"Результат має містити ВИКЛЮЧНО виправлений текст без будь-яких додатків."
-                )
+                "content": prompt_content
             }]
             prompt = tokenizer.apply_chat_template(messages, tokenize=False)
 
