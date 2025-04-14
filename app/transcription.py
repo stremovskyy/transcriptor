@@ -140,7 +140,7 @@ class TranscriptionService:
             focus_prompt: str,
             sample_rate: int
     ) -> Dict[str, List[Dict[str, Any]]]:
-        """Process all segments for all requested languages."""
+        """Process all segments for all requested languages with proper resource management."""
         all_results = {lang: [] for lang in languages}
 
         if not segments:
@@ -157,6 +157,12 @@ class TranscriptionService:
             logger.info(f"Processing segment {i + 1}/{len(segments)}")
             start_time = start_sample / sample_rate
 
+            if use_fp16 and i > 0:  # Skip first segment as memory was likely cleaned before
+                try:
+                    torch.cuda.empty_cache()
+                except Exception as e:
+                    logger.warning(f"Error cleaning GPU cache: {str(e)}")
+
             # Process for each language
             for lang_idx, language in enumerate(languages):
                 try:
@@ -170,7 +176,8 @@ class TranscriptionService:
                         "initial_prompt": focus_prompt
                     }
 
-                    result = model.transcribe(segment, **options)
+                    with torch.no_grad():
+                        result = model.transcribe(segment, **options)
 
                     # Create segment result with timing info
                     segment_result = TranscriptionService._create_segment_result(
@@ -178,9 +185,12 @@ class TranscriptionService:
                     )
 
                     all_results[language].append(segment_result)
+
+                    del result
+
                 except Exception as e:
                     logger.error(f"Error processing segment {i + 1} for language {language}: {str(e)}")
-                    # Add empty segment to maintain sequence (NOT TESTED)
+                    # Add empty segment to maintain sequence
                     all_results[language].append({
                         "text": "",
                         "start": start_time,
@@ -188,6 +198,19 @@ class TranscriptionService:
                         "confidence": 0,
                         "error": str(e)
                     })
+
+                    if use_fp16:
+                        try:
+                            torch.cuda.empty_cache()
+                        except Exception as cleanup_error:
+                            logger.warning(f"Error cleaning GPU cache after error: {str(cleanup_error)}")
+
+        if use_fp16:
+            try:
+                torch.cuda.empty_cache()
+                torch.cuda.synchronize()
+            except Exception as e:
+                logger.warning(f"Error in final GPU cleanup: {str(e)}")
 
         return all_results
 

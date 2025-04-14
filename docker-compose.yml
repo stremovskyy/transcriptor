@@ -9,4 +9,7 @@ services:
       - .env
     volumes:
       - ./logs:/app/logs
+      - ./uploads:/app/uploads
+      - ./gunicorn_config.py:/app/gunicorn_config.py
+      - ./.cache:/home/appuser/.cache
     restart: always
