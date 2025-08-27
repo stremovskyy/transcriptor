@@ -1,15 +1,45 @@
-version: "3.9"
-
 services:
-  app:
+  transcriptor:
     build: .
+    image: stremovskyy/transcription-app:latest
     ports:
       - "8080:8080"
-    env_file:
-      - .env
+    environment:
+      # set your vars here
+      # LOG_LEVEL: info
     volumes:
-      - ./logs:/app/logs
-      - ./uploads:/app/uploads
-      - ./gunicorn_config.py:/app/gunicorn_config.py
-      - ./.cache:/home/appuser/.cache
-    restart: always
+      # "./data:/app/uploads"
+      # "./logs:/app/logs"
+      - whisper_cache:/home/appuser/.cache/whisper
+      - torch_cache:/home/appuser/.cache/torch
+    restart: unless-stopped
+    labels:
+      - autoheal=true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  autoheal:
+    image: willfarrell/autoheal:latest
+    container_name: autoheal
+    restart: unless-stopped
+    environment:
+      - AUTOHEAL_CONTAINER_LABEL=autoheal
+      - AUTOHEAL_INTERVAL=10
+      - AUTOHEAL_START_PERIOD=120
+      - AUTOHEAL_DEFAULT_STOP_TIMEOUT=10
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
+
+volumes:
+  whisper_cache:
+    name: whisper_cache
+  torch_cache:
+    name: torch_cache

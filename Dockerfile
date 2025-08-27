@@ -1,61 +1,47 @@
 # Build Stage
 FROM python:3.10-slim AS builder
-
 WORKDIR /app
-
-# Install build dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
-    libsndfile1 \
-    ffmpeg \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy only requirements first to leverage Docker cache
+RUN apt-get update && apt-get install -y gcc libsndfile1 ffmpeg && rm -rf /var/lib/apt/lists/*
 COPY requirements.txt .
 RUN pip install --no-cache-dir --user -r requirements.txt
 
 # Final Stage
 FROM python:3.10-slim
-
 ENV PYTHONUNBUFFERED=1 \
     FLASK_APP=app.py \
     FLASK_ENV=production \
     PYTHONDONTWRITEBYTECODE=1 \
     UPLOAD_FOLDER=/app/uploads \
     PATH="/home/appuser/.local/bin:$PATH"
-
 WORKDIR /app
 
-# Install runtime dependencies
-RUN apt-get update && apt-get install -y \
-    ffmpeg \
-    libsndfile1 \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y ffmpeg libsndfile1 curl gosu && rm -rf /var/lib/apt/lists/*
 
-# Create necessary directories with proper permissions
 RUN mkdir -p /app/logs /app/uploads && \
     adduser --disabled-password --gecos '' appuser && \
     chown -R appuser:appuser /app
 
-# Copy Python packages from builder stage
+# Ensure cache dirs exist for shared volumes
+RUN mkdir -p /home/appuser/.cache/whisper /home/appuser/.cache/torch && \
+    chown -R appuser:appuser /home/appuser/.cache
+
+# Python deps
 COPY --from=builder /root/.local /home/appuser/.local
 
-# Copy application code
+# App
 COPY --chown=appuser:appuser app app
 COPY --chown=appuser:appuser gunicorn_config.py .
 COPY --chown=appuser:appuser app.py .
 COPY --chown=appuser:appuser run.py .
 COPY --chown=appuser:appuser .env.example .
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# Expose the Flask application port
 EXPOSE 8080
+USER root
 
-# Switch to non-root user
-USER appuser
+HEALTHCHECK --interval=60s --timeout=15s --start-period=30s --retries=3 \
+  CMD curl -fsS http://localhost:8080/health || exit 1
 
-# Set health check
-HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-  CMD curl -f http://localhost:8080/ || exit 1
-
-# Run the application
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["gunicorn", "-c", "/app/gunicorn_config.py", "run:app"]

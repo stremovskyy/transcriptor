@@ -6,19 +6,27 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-Version = '1.2.1'
+Version = '1.2.2'
 
-# Create logs directory if it doesn't exist
-os.makedirs('logs', exist_ok=True)
+log_handlers = [logging.StreamHandler()]
+LOG_TO_FILE = os.getenv('LOG_TO_FILE', 'false').lower() == 'true'
+
+if LOG_TO_FILE:
+    # Try to create logs directory and file handler when explicitly enabled
+    try:
+        os.makedirs('logs', exist_ok=True)
+        log_handlers.insert(0, logging.FileHandler(
+            'logs/transcription_app.log', mode='a', encoding='utf-8', errors='ignore'
+        ))
+    except Exception as e:
+        # Fallback to stdout-only if we cannot write logs to file
+        logger.warning(f"File logging disabled due to error: {e}")
 
 # Configure logging with more detailed format
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('logs/transcription_app.log', mode='a', encoding='utf-8', errors='ignore'),
-        logging.StreamHandler()
-    ]
+    handlers=log_handlers,
 )
 
 # logging.getLogger('app.preprocessing').setLevel(logging.DEBUG)
