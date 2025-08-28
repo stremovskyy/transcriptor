@@ -1,3 +1,5 @@
 /logs/
 /.env
 /.env.prod
+/test.mp3
+.idea

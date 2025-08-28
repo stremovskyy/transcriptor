@@ -1,7 +1,28 @@
+# Reduce build context size and avoid copying local artifacts
+.git
+.gitignore
+.venv
 __pycache__
 *.pyc
 *.pyo
-.git
-node_modules
-.env
-logs
+
+# Python caches and wheels
+*.whl
+*.egg-info
+
+# App runtime outputs
+static/audio
+uploads
+*.mp3
+*.wav
+*.ogg
+
+# Model caches and downloads
+home/
+.cache
+tts_models
+models
+
+# Docker
+Dockerfile*
+docker-compose*

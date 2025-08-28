@@ -38,8 +38,8 @@ services:
       - "80:80"
       - "443:443"
 #      - "8080:8080"
-      # Expose metrics endpoint (optional, keep internal if using a local Prometheus)
-      # - "9100:9100"
+      # Expose metrics endpoint for Prometheus
+      - "9100:9100"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - traefik_letsencrypt:/letsencrypt
@@ -132,10 +132,68 @@ services:
         max-size: "5m"
         max-file: "3"
 
-networks:
-  proxy:
-    name: proxy
-    driver: bridge
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+      - '--storage.tsdb.retention.time=30d'
+    expose:
+      - "9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - proxy
+    restart: unless-stopped
+    labels:
+      - autoheal=true
+      - traefik.enable=true
+      - traefik.http.routers.prometheus.rule=Host(`prometheus.${DOMAIN}`)
+      - traefik.http.routers.prometheus.entrypoints=websecure
+      - traefik.http.routers.prometheus.tls=true
+      - traefik.http.routers.prometheus.tls.certresolver=letsencrypt
+      - traefik.http.routers.prometheus.middlewares=traefik-auth
+      - traefik.http.services.prometheus.loadbalancer.server.port=9090
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    expose:
+      - "3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    networks:
+      - proxy
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    labels:
+      - autoheal=true
+      - traefik.enable=true
+      - traefik.http.routers.grafana.rule=Host(`grafana.${DOMAIN}`)
+      - traefik.http.routers.grafana.entrypoints=websecure
+      - traefik.http.routers.grafana.tls=true
+      - traefik.http.routers.grafana.tls.certresolver=letsencrypt
+      - traefik.http.services.grafana.loadbalancer.server.port=3000
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
 
 volumes:
   traefik_letsencrypt:
@@ -144,3 +202,10 @@ volumes:
     name: whisper_cache
   torch_cache:
     name: torch_cache
+  prometheus_data:
+  grafana_data:
+
+networks:
+  proxy:
+    name: proxy
+    driver: bridge

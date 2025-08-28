@@ -9,9 +9,9 @@ rapidfuzz
 gunicorn
 transformers
 accelerate
-torch
 mpmath
 sympy
 urllib3
 librosa
 omegaconf
+soundfile

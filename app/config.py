@@ -9,7 +9,29 @@ logger = logging.getLogger(__name__)
 Version = '1.2.2'
 
 log_handlers = [logging.StreamHandler()]
+
+# Load environment from .env early so logging picks it up
+load_dotenv()
+
 LOG_TO_FILE = os.getenv('LOG_TO_FILE', 'false').lower() == 'true'
+
+# Determine environment and desired log level
+env = (os.getenv('FLASK_ENV') or os.getenv('APP_ENV') or os.getenv('ENV') or '').lower()
+is_prod = env == 'production'
+
+def _parse_level(value: str, default: int) -> int:
+    if not value:
+        return default
+    mapping = {
+        'critical': logging.CRITICAL,
+        'error': logging.ERROR,
+        'warning': logging.WARNING,
+        'warn': logging.WARNING,
+        'info': logging.INFO,
+        'debug': logging.DEBUG,
+        'notset': logging.NOTSET,
+    }
+    return mapping.get(value.lower(), default)
 
 if LOG_TO_FILE:
     # Try to create logs directory and file handler when explicitly enabled
@@ -22,9 +44,13 @@ if LOG_TO_FILE:
         # Fallback to stdout-only if we cannot write logs to file
         logger.warning(f"File logging disabled due to error: {e}")
 
-# Configure logging with more detailed format
+# Configure logging with more detailed format.
+# In production default to WARNING to reduce console noise.
+default_level = logging.WARNING if is_prod else logging.INFO
+configured_level = _parse_level(os.getenv('LOG_LEVEL', ''), default_level)
+
 logging.basicConfig(
-    level=logging.INFO,
+    level=configured_level,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=log_handlers,
 )

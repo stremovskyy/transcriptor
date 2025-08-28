@@ -1,9 +1,16 @@
 # Build Stage
 FROM python:3.10-slim AS builder
 WORKDIR /app
-RUN apt-get update && apt-get install -y gcc libsndfile1 ffmpeg && rm -rf /var/lib/apt/lists/*
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends gcc libsndfile1 ffmpeg \
+ && rm -rf /var/lib/apt/lists/*
 COPY requirements.txt .
-RUN pip install --no-cache-dir --user -r requirements.txt
+# Install CUDA-enabled PyTorch (bundled CUDA 12.1)
+RUN pip install --no-cache-dir --no-compile --user \
+      --index-url https://download.pytorch.org/whl/cu121 \
+      torch==2.3.1 && \
+    # Install remaining Python dependencies
+    pip install --no-cache-dir --no-compile --user -r requirements.txt
 
 # Final Stage
 FROM python:3.10-slim
@@ -12,10 +19,14 @@ ENV PYTHONUNBUFFERED=1 \
     FLASK_ENV=production \
     PYTHONDONTWRITEBYTECODE=1 \
     UPLOAD_FOLDER=/app/uploads \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PATH="/home/appuser/.local/bin:$PATH"
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y ffmpeg libsndfile1 curl gosu && rm -rf /var/lib/apt/lists/*
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ffmpeg libsndfile1 curl gosu \
+ && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /app/logs /app/uploads && \
     adduser --disabled-password --gecos '' appuser && \
