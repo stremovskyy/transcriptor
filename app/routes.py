@@ -88,6 +88,20 @@ def transcribe():
         languages = request.form.get('lang', 'Ukrainian,Russian').split(',')
         model_type = request.form.get('model', 'base')
         keywords = request.form.get('keywords', '').split(',') if request.form.get('keywords') else []
+        # Fallback to configured tokens when keywords not provided
+        if not keywords:
+            try:
+                from app.config import TranscriptionConfig
+                keywords = TranscriptionConfig().get('focus_tokens', []) or []
+            except Exception:
+                pass
+        # Control whether to run keyword spotting (default true)
+        detect_keywords = request.form.get('detect_keywords', 'true').lower() in ['1', 'true', 't', 'yes', 'y']
+
+        focus_tokens = []
+
+        if not focus_tokens and keywords:
+            focus_tokens = list(keywords)
         confidence_threshold = int(request.form.get('confidence_threshold', 80))
         pre_process_file = request.form.get('pre_process_file', 'false').lower() == 'true'
 
@@ -98,6 +112,7 @@ def transcribe():
                     f"languages={languages}, "
                     f"model={model_type}, "
                     f"keywords={keywords}, "
+                    f"detect_keywords={detect_keywords}, "
                     f"confidence_threshold={confidence_threshold}, "
                     f"pre_process_file={pre_process_file}")
 
@@ -115,6 +130,7 @@ def transcribe():
             model,
             languages,
             keywords,
+            keywords,  # use keywords as bias tokens
             pre_process_file
         )
 
@@ -122,7 +138,7 @@ def transcribe():
             return jsonify(transcription_result), 400
 
         keyword_spots = {}
-        if keywords:
+        if keywords and detect_keywords:
             keyword_spots = KeyWordsService.spot_keywords(
                 transcription_results=transcription_result["segments"],
                 keywords=keywords,
@@ -187,6 +203,24 @@ def transcribe_json():
         keywords = data.get('keywords', [])
         if isinstance(keywords, str):
             keywords = keywords.split(',') if keywords else []
+        if not keywords:
+            try:
+                from app.config import TranscriptionConfig
+                keywords = TranscriptionConfig().get('focus_tokens', []) or []
+            except Exception:
+                pass
+        # Control keyword spotting with default True; accept bool or string
+        detect_keywords = data.get('detect_keywords', True)
+        if isinstance(detect_keywords, str):
+            detect_keywords = detect_keywords.lower() in ['1', 'true', 't', 'yes', 'y']
+
+        # Prepare optional focus tokens (used for biasing the model prompt);
+        # if not provided, we fallback to provided keywords for biasing.
+        focus_tokens = data.get('focus_tokens', [])
+        if isinstance(focus_tokens, str):
+            focus_tokens = [t.strip() for t in focus_tokens.split(',') if t.strip()]
+        if not focus_tokens and keywords:
+            focus_tokens = list(keywords)
 
         confidence_threshold = int(data.get('confidence_threshold', 80))
         pre_process_file = data.get('pre_process_file', False)
@@ -236,6 +270,7 @@ def transcribe_json():
                     f"languages={languages}, "
                     f"model={model_type}, "
                     f"keywords={keywords}, "
+                    f"detect_keywords={detect_keywords}, "
                     f"confidence_threshold={confidence_threshold}, "
                     f"file_url={file_url}, "
                     f"pre_process_file={pre_process_file}"
@@ -255,6 +290,7 @@ def transcribe_json():
             model,
             languages,
             keywords,
+            focus_tokens,  # use focus tokens (fallbacks to keywords)
             pre_process_file
         )
 
@@ -262,7 +298,7 @@ def transcribe_json():
             return jsonify(transcription_result), 400
 
         keyword_spots = {}
-        if keywords:
+        if keywords and detect_keywords:
             keyword_spots = KeyWordsService.spot_keywords(
                 transcription_results=transcription_result["segments"],
                 keywords=keywords,

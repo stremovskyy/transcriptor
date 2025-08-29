@@ -15,3 +15,5 @@ urllib3
 librosa
 omegaconf
 soundfile
+requests
+scipy

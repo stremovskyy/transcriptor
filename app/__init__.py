@@ -2,6 +2,7 @@ from flask import Flask
 from app.config import configure_app
 from app.routes import register_routes
 from app.models import ModelCache
+from app.limiter import init_limiter
 import warnings
 import logging
 warnings.simplefilter("ignore", category=FutureWarning)
@@ -9,6 +10,8 @@ warnings.simplefilter("ignore", category=FutureWarning)
 def create_app():
     app = Flask(__name__)
     configure_app(app)
+    # Initialize rate limiter with sensible defaults
+    init_limiter(app)
     register_routes(app)
 
     # Preload TTS model in a separate thread to avoid blocking app startup

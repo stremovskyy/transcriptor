@@ -6,7 +6,7 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-Version = '1.2.2'
+Version = '1.2.3'
 
 log_handlers = [logging.StreamHandler()]
 
@@ -134,9 +134,33 @@ class TranscriptionConfig:
         return cls._instance
 
     def _load_config(self) -> None:
+        # Support abstract focus tokens for biasing; keep compat with CITY_NAMES if present
+        tokens_env = (
+            os.getenv('FOCUS_TOKENS')
+            or os.getenv('TARGET_TOKENS')
+            or os.getenv('CITY_NAMES')
+            or ''
+        )
+
         self.settings = {
             'helper_prompt': str(os.getenv('TRANSCRIPTION_HELPER_PROMPT', '')),
             'add_keywords': str_to_bool(os.getenv('TRANSCRIPTION_ADD_KEYWORDS', '')),
+            # Decoding/tuning
+            'temperature': float(os.getenv('TRANSCRIPTION_TEMPERATURE', '0.0')),  # greedy for speed
+            'beam_size': int(os.getenv('TRANSCRIPTION_BEAM_SIZE', '1')),          # 1 for greedy
+            'best_of': int(os.getenv('TRANSCRIPTION_BEST_OF', '1')),
+            'word_timestamps': str_to_bool(os.getenv('TRANSCRIPTION_WORD_TIMESTAMPS', 'false')),
+            'condition_on_previous_text': str_to_bool(os.getenv('TRANSCRIPTION_CONDITION_ON_PREV', 'false')),
+            'no_speech_threshold': float(os.getenv('TRANSCRIPTION_NO_SPEECH_THRESHOLD', '0.6')),
+            'compression_ratio_threshold': float(os.getenv('TRANSCRIPTION_COMPRESSION_RATIO_THRESHOLD', '2.4')),
+            'max_initial_timestamp': float(os.getenv('TRANSCRIPTION_MAX_INITIAL_TIMESTAMP', '1.0')),
+            'task': str(os.getenv('TRANSCRIPTION_TASK', 'transcribe')),
+            # Segmentation
+            'segment_length_sec': int(os.getenv('TRANSCRIPTION_SEGMENT_LENGTH_SEC', '15')),
+            'segment_overlap_sec': int(os.getenv('TRANSCRIPTION_SEGMENT_OVERLAP_SEC', '5')),
+            'skip_silent_segments': str_to_bool(os.getenv('TRANSCRIPTION_SKIP_SILENT_SEGMENTS', 'true')),
+            # Focus token biasing
+            'focus_tokens': [c.strip() for c in tokens_env.split(',') if c.strip()],
         }
 
     def get(self, key: str, default: Any = None) -> Any:

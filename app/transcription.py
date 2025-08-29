@@ -21,6 +21,7 @@ class TranscriptionService:
             model: Any,
             languages: List[str],
             keywords: List[str],
+            focus_tokens: Optional[List[str]] = None,
             pre_process_file: bool = False
     ) -> Dict[str, Any]:
         """
@@ -30,7 +31,8 @@ class TranscriptionService:
             file_path: Path to the audio file
             model: Whisper model instance
             languages: List of language codes to transcribe into
-            keywords: List of keywords to enhance recognition accuracy
+            keywords: List of keywords to enhance recognition accuracy (also used for spotting)
+            focus_tokens: Additional bias tokens injected into the prompt (request-level)
             pre_process_file: Whether to preprocess the audio file
 
         Returns:
@@ -46,7 +48,7 @@ class TranscriptionService:
         audio_duration = len(processed_audio) / sample_rate
         logger.info(f"Audio length: {audio_duration:.2f} seconds")
 
-        focus_prompt = TranscriptionService._build_focus_prompt(keywords)
+        focus_prompt = TranscriptionService._build_focus_prompt(keywords, focus_tokens or [])
 
         segments = TranscriptionService._create_segments(processed_audio, sample_rate)
         logger.info(f"Split audio into {len(segments)} segments for processing")
@@ -99,7 +101,7 @@ class TranscriptionService:
             raise SilenceError()
 
     @staticmethod
-    def _build_focus_prompt(keywords: List[str]) -> str:
+    def _build_focus_prompt(keywords: List[str], focus_tokens: List[str]) -> str:
         """Build a focus prompt from TranscriptionConfig and keywords."""
         config = TranscriptionConfig()
         focus_prompt = config.get('helper_prompt', '')
@@ -107,23 +109,38 @@ class TranscriptionService:
         if keywords and config.get('add_keywords', False):
             focus_prompt += f" {' '.join(keywords)}"
 
+        # Add abstract focus tokens to the prompt (request overrides config)
+        tokens = (focus_tokens or []) or config.get('focus_tokens', [])
+        if tokens:
+            # Append tokens directly to leverage Whisper's initial_prompt biasing
+            focus_prompt += f" {' '.join(tokens)}"
+
         logger.info(f"Focus prompt: {focus_prompt}")
         return focus_prompt
 
     @staticmethod
     def _create_segments(audio: Any, sample_rate: int) -> List[Tuple[int, Any]]:
         """Create overlapping segments from the audio for processing."""
-        segment_length = 15 * sample_rate
-        overlap = 7 * sample_rate
+        cfg = TranscriptionConfig()
+        segment_length = cfg.get('segment_length_sec', 15) * sample_rate
+        overlap = cfg.get('segment_overlap_sec', 5) * sample_rate
 
         if len(audio) == 0:
             logger.warning("Audio length is zero, returning empty segments list")
             return []
 
         segments = []
-        for start in range(0, len(audio), segment_length - overlap):
+        for start in range(0, len(audio), max(1, segment_length - overlap)):
             end = min(start + segment_length, len(audio))
             segment = audio[start:end]
+            # Optionally skip clearly silent segments to save time
+            if TranscriptionConfig().get('skip_silent_segments', True):
+                try:
+                    if PreprocessingService.detect_silence(segment):
+                        continue
+                except Exception:
+                    # Be conservative: if silence detection fails, don't skip
+                    pass
             segments.append((start, segment))
 
             # If we've reached the end of the audio, break
@@ -147,8 +164,13 @@ class TranscriptionService:
             logger.warning("No segments to process")
             return all_results
 
-        use_fp16 = torch.cuda.is_available()
-        logger.info(f"Using fp16: {use_fp16}")
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        use_fp16 = device == 'cuda'
+        try:
+            cuda_ver = getattr(torch.version, 'cuda', None)
+        except Exception:
+            cuda_ver = None
+        logger.info(f"Using device: {device} | fp16: {use_fp16} | CUDA: {cuda_ver}")
 
         model_name = getattr(model, 'name', str(type(model)))
         logger.info(f"Using model: {model_name}")
@@ -166,14 +188,20 @@ class TranscriptionService:
             # Process for each language
             for lang_idx, language in enumerate(languages):
                 try:
+                    cfg = TranscriptionConfig()
                     options = {
                         "language": language,
-                        "temperature": 0.5,
-                        "beam_size": 10,
-                        "max_initial_timestamp": 1.0,
-                        "word_timestamps": True,
+                        "task": cfg.get('task', 'transcribe'),
+                        "temperature": cfg.get('temperature', 0.0),
+                        "beam_size": cfg.get('beam_size', 1),
+                        "best_of": cfg.get('best_of', 1),
+                        "max_initial_timestamp": cfg.get('max_initial_timestamp', 1.0),
+                        "word_timestamps": cfg.get('word_timestamps', False),
+                        "condition_on_previous_text": cfg.get('condition_on_previous_text', False),
+                        "no_speech_threshold": cfg.get('no_speech_threshold', 0.6),
+                        "compression_ratio_threshold": cfg.get('compression_ratio_threshold', 2.4),
                         "fp16": use_fp16,
-                        "initial_prompt": focus_prompt
+                        "initial_prompt": focus_prompt,
                     }
 
                     with torch.no_grad():

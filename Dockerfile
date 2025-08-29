@@ -1,29 +1,16 @@
-# Build Stage
-FROM python:3.10-slim AS builder
-WORKDIR /app
-RUN apt-get update \
- && apt-get install -y --no-install-recommends gcc libsndfile1 ffmpeg \
- && rm -rf /var/lib/apt/lists/*
-COPY requirements.txt .
-# Install CUDA-enabled PyTorch (bundled CUDA 12.1)
-RUN pip install --no-cache-dir --no-compile --user \
-      --index-url https://download.pytorch.org/whl/cu121 \
-      torch==2.3.1 && \
-    # Install remaining Python dependencies
-    pip install --no-cache-dir --no-compile --user -r requirements.txt
+FROM pytorch/pytorch:2.3.1-cuda12.1-cudnn8-runtime
 
-# Final Stage
-FROM python:3.10-slim
 ENV PYTHONUNBUFFERED=1 \
     FLASK_APP=app.py \
     FLASK_ENV=production \
     PYTHONDONTWRITEBYTECODE=1 \
     UPLOAD_FOLDER=/app/uploads \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PATH="/home/appuser/.local/bin:$PATH"
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
 WORKDIR /app
 
+# System deps
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ffmpeg libsndfile1 curl gosu \
  && rm -rf /var/lib/apt/lists/*
@@ -37,7 +24,13 @@ RUN mkdir -p /home/appuser/.cache/whisper /home/appuser/.cache/torch && \
     chown -R appuser:appuser /home/appuser/.cache
 
 # Python deps
-COPY --from=builder /root/.local /home/appuser/.local
+COPY requirements.txt ./
+# Install PyTorch ecosystem explicitly to ensure CUDA 12.1 wheels, then the rest
+RUN pip install --no-cache-dir --no-compile --index-url https://download.pytorch.org/whl/cu121 \
+      torchaudio==2.3.1 && \
+    grep -vE "^(torch|torchaudio)$" requirements.txt > requirements.npt.txt && \
+    pip install --no-cache-dir --no-compile -r requirements.npt.txt && \
+    rm -f requirements.npt.txt
 
 # App
 COPY --chown=appuser:appuser app app
